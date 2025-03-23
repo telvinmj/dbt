@@ -1,0 +1,16 @@
+customer_id,first_name,last_name,email,phone,address,city,state,zip_code,date_of_birth,gender,joining_date
+CU3001,James,Williams,j.williams@email.com,555-123-4567,123 Oak Street,New York,NY,10001,1980-05-15,M,2020-01-10
+CU3002,Sarah,Johnson,s.johnson@email.com,555-234-5678,456 Pine Avenue,Los Angeles,CA,90001,1975-08-22,F,2020-02-15
+CU3003,Michael,Brown,m.brown@email.com,555-345-6789,789 Maple Road,Chicago,IL,60601,1990-03-30,M,2020-03-05
+CU3004,Jennifer,Davis,j.davis@email.com,555-456-7890,101 Cedar Lane,Houston,TX,77001,1982-11-12,F,2020-04-20
+CU3005,Robert,Miller,r.miller@email.com,555-567-8901,202 Birch Street,Miami,FL,33101,1978-07-08,M,2020-05-11
+CU3006,Linda,Garcia,l.garcia@email.com,555-678-9012,303 Spruce Court,Boston,MA,02101,1985-02-25,F,2020-06-18
+CU3007,William,Rodriguez,w.rodriguez@email.com,555-789-0123,404 Elm Circle,Seattle,WA,98101,1972-10-05,M,2020-07-22
+CU3008,Elizabeth,Martinez,e.martinez@email.com,555-890-1234,505 Walnut Place,Denver,CO,80201,1988-04-17,F,2020-08-30
+CU3009,David,Hernandez,d.hernandez@email.com,555-901-2345,606 Ash Drive,Atlanta,GA,30301,1977-09-28,M,2020-09-15
+CU3010,Patricia,Lopez,p.lopez@email.com,555-012-3456,707 Cherry Lane,Dallas,TX,75201,1983-06-14,F,2020-10-05
+CU3011,Joseph,Gonzalez,j.gonzalez@email.com,555-123-4567,808 Pineapple Street,San Francisco,CA,94101,1970-12-31,M,2021-01-15
+CU3012,Nancy,Wilson,n.wilson@email.com,555-234-5678,909 Orange Avenue,Philadelphia,PA,19101,1992-01-01,F,2021-02-20
+CU3013,Charles,Anderson,c.anderson@email.com,555-345-6789,111 Apple Road,Phoenix,AZ,85001,1986-08-19,M,2021-03-10
+CU3014,Karen,Thomas,k.thomas@email.com,555-456-7890,222 Peach Boulevard,San Diego,CA,92101,1979-03-03,F,2021-04-05
+CU3015,Mark,Jackson,m.jackson@email.com,555-567-8901,333 Plum Street,Austin,TX,78701,1994-05-27,M,2021-05-12 

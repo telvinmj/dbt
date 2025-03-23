@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: retail_data
+    schema: main
+    tables:
+      - name: raw_products
+      - name: raw_sales
+      - name: raw_inventory
+      - name: raw_promotions
+
+  - name: customer_data
+    schema: main
+    tables:
+      - name: raw_customers
+      - name: raw_customer_preferences
+      - name: raw_customer_feedback
+
+  - name: finance_data
+    schema: main
+    tables:
+      - name: raw_product_costs
+      - name: raw_marketing_costs
+      - name: raw_operational_costs 

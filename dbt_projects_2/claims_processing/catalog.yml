@@ -1,0 +1,111 @@
+version: 2
+
+sources:
+  - name: claims_processing_raw_data
+    schema: raw_data
+    description: Raw claims processing data loaded from seed files
+    tables:
+      - name: claims
+        description: Insurance claims information
+        columns:
+          - name: claim_id
+            description: Unique identifier for the claim
+          - name: policy_id
+            description: Identifier for the associated policy
+          - name: customer_id
+            description: Identifier for the customer making the claim
+          - name: claim_date
+            description: Date when the claim was filed
+          - name: claim_amount
+            description: Amount claimed by the customer
+          - name: claim_status
+            description: Current status of the claim (PENDING, SETTLED, DENIED, IN_REVIEW)
+          - name: claim_type
+            description: Type of claim (AUTO, HOME, HEALTH)
+          - name: adjuster_id
+            description: Identifier for the adjuster handling the claim
+          - name: incident_date
+            description: Date when the incident occurred
+          - name: settlement_date
+            description: Date when the claim was settled, NULL if not settled
+          - name: settlement_amount
+            description: Amount paid to settle the claim, NULL if not settled
+      
+      - name: adjusters
+        description: Insurance claims adjusters information
+        columns:
+          - name: adjuster_id
+            description: Unique identifier for the adjuster
+          - name: adjuster_name
+            description: Full name of the adjuster
+          - name: adjuster_email
+            description: Email address of the adjuster
+          - name: department
+            description: Department the adjuster belongs to
+          - name: specialty
+            description: Specialty area of the adjuster (AUTO, HOME, HEALTH)
+          - name: years_experience
+            description: Number of years of experience
+          - name: active
+            description: Whether the adjuster is currently active (true/false)
+
+models:
+  - name: stg_claims
+    description: Cleaned claims data with standardized fields
+    columns:
+      - name: claim_id
+        description: Unique identifier for the claim
+        tests:
+          - unique
+          - not_null
+      - name: policy_id
+        description: Identifier for the associated policy
+      - name: customer_id
+        description: Identifier for the customer making the claim
+      - name: claim_date
+        description: Date when the claim was filed
+      - name: claim_amount
+        description: Amount claimed by the customer
+      - name: claim_status
+        description: Current status of the claim (standardized)
+      - name: claim_type
+        description: Type of claim (standardized)
+      - name: adjuster_id
+        description: Identifier for the adjuster handling the claim
+      - name: incident_date
+        description: Date when the incident occurred
+      - name: settlement_date
+        description: Date when the claim was settled, NULL if not settled
+      - name: settlement_amount
+        description: Amount paid to settle the claim, NULL if not settled
+      - name: days_to_settle
+        description: Number of days between claim_date and settlement_date
+
+  - name: stg_adjusters
+    description: Cleaned adjusters data with standardized fields
+    columns:
+      - name: adjuster_id
+        description: Unique identifier for the adjuster
+        tests:
+          - unique
+          - not_null
+      - name: adjuster_name
+        description: Full name of the adjuster
+      - name: adjuster_email
+        description: Email address of the adjuster
+      - name: department
+        description: Department the adjuster belongs to
+      - name: specialty
+        description: Specialty area of the adjuster (standardized)
+      - name: years_experience
+        description: Number of years of experience
+      - name: active
+        description: Whether the adjuster is currently active (true/false)
+      - name: experience_level
+        description: Experience level based on years (JUNIOR, MID, SENIOR)
+
+  - name: int_claims_enriched
+    description: Claims data enriched with adjuster information
+  
+  - name: mart_claims_analysis
+    description: Analytical view of claims for business reporting 

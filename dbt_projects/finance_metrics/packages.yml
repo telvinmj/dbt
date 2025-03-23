@@ -1,0 +1,3 @@
+packages:
+  - local: ../retail_ops
+  - local: ../customer_360 

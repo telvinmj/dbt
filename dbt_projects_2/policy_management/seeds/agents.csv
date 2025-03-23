@@ -1,0 +1,11 @@
+agent_id,agent_name,agent_email,office_location,years_experience,specialization,active
+AG101,Thomas Wilson,t.wilson@insurance.com,New York,10,AUTO,true
+AG102,Amanda Johnson,a.johnson@insurance.com,Los Angeles,8,HOME,true
+AG103,Steven Clark,s.clark@insurance.com,Chicago,6,AUTO,true
+AG104,Rebecca Lewis,r.lewis@insurance.com,Boston,12,HOME,true
+AG105,Mark Thompson,m.thompson@insurance.com,Miami,9,HOME,true
+AG106,Laura Martinez,l.martinez@insurance.com,San Francisco,15,HEALTH,true
+AG107,Daniel White,d.white@insurance.com,Seattle,7,HEALTH,true
+AG108,Patricia Miller,p.miller@insurance.com,Denver,5,AUTO,false
+AG109,Christopher Taylor,c.taylor@insurance.com,Atlanta,11,HOME,true
+AG110,Stephanie Garcia,s.garcia@insurance.com,Dallas,4,HEALTH,true

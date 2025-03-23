@@ -1,0 +1,370 @@
+{
+  "projects": [
+    {
+      "id": "p1",
+      "name": "retail_ops",
+      "description": "retail_ops dbt project",
+      "path": "dbt_projects/retail_ops"
+    },
+    {
+      "id": "p2",
+      "name": "customer_360",
+      "description": "customer_360 dbt project",
+      "path": "dbt_projects/customer_360"
+    },
+    {
+      "id": "p3",
+      "name": "finance_metrics",
+      "description": "finance_metrics dbt project",
+      "path": "dbt_projects/finance_metrics"
+    }
+  ],
+  "models": [
+    {
+      "id": "m1",
+      "name": "stg_products",
+      "project": "p1",
+      "description": "stg_products",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT * FROM retail.raw_products "
+    },
+    {
+      "id": "m2",
+      "name": "stg_promotions",
+      "project": "p1",
+      "description": "stg_promotions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    promotion_id,\n    product_id,\n    promotion_name,\n    discount_percentage,\n    start_date,\n    end_date\nFROM retail.raw_promotions "
+    },
+    {
+      "id": "m3",
+      "name": "stg_sales",
+      "project": "p1",
+      "description": "stg_sales",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    sale_id,\n    product_id,\n    customer_id,\n    quantity,\n    sale_date,\n    total_amount\nFROM retail.raw_sales "
+    },
+    {
+      "id": "m4",
+      "name": "stg_inventory",
+      "project": "p1",
+      "description": "stg_inventory",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    inventory_id,\n    product_id,\n    warehouse_location,\n    quantity_on_hand,\n    reorder_point,\n    last_restock_date\nFROM retail.raw_inventory "
+    },
+    {
+      "id": "m5",
+      "name": "product_sales",
+      "project": "p1",
+      "description": "product_sales",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH product_sales AS (\n    SELECT \n        s.sale_id,\n        s.customer_id,\n        p.product_id,\n        p.product_name,\n        p.category,\n        s.quantity,\n        s.sale_date,\n        s.total_amount\n    FROM {{ ref('stg_sales') }} s\n    JOIN {{ ref('stg_products') }} p ON s.product_id = p.product_id\n)\n\nSELECT * FROM product_sales "
+    },
+    {
+      "id": "m6",
+      "name": "inventory_status",
+      "project": "p1",
+      "description": "inventory_status",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH inventory_metrics AS (\n    SELECT \n        i.inventory_id,\n        i.warehouse_location,\n        p.product_id,\n        p.product_name,\n        p.category,\n        i.quantity_on_hand,\n        i.reorder_point,\n        i.last_restock_date,\n        CASE \n            WHEN i.quantity_on_hand <= i.reorder_point THEN 'Reorder Required'\n            WHEN i.quantity_on_hand <= (i.reorder_point * 1.5) THEN 'Low Stock'\n            ELSE 'Sufficient Stock'\n        END as stock_status\n    FROM {{ ref('stg_inventory') }} i\n    JOIN {{ ref('stg_products') }} p ON i.product_id = p.product_id\n)\n\nSELECT * FROM inventory_metrics "
+    },
+    {
+      "id": "m7",
+      "name": "stg_customers",
+      "project": "p2",
+      "description": "stg_customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    customer_id,\n    first_name,\n    last_name,\n    email,\n    signup_date,\n    customer_segment\nFROM customer.raw_customers "
+    },
+    {
+      "id": "m8",
+      "name": "stg_customer_feedback",
+      "project": "p2",
+      "description": "stg_customer_feedback",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    feedback_id,\n    customer_id,\n    sale_id,\n    rating,\n    feedback_text,\n    feedback_date\nFROM customer.raw_customer_feedback "
+    },
+    {
+      "id": "m9",
+      "name": "stg_customer_preferences",
+      "project": "p2",
+      "description": "stg_customer_preferences",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    preference_id,\n    customer_id,\n    preferred_category,\n    communication_channel,\n    last_updated\nFROM customer.raw_customer_preferences "
+    },
+    {
+      "id": "m10",
+      "name": "customer_profile_360",
+      "project": "p2",
+      "description": "customer_profile_360",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH customer_base AS (\n    SELECT\n        c.*,\n        cp.preferred_category,\n        cp.communication_channel\n    FROM {{ ref('stg_customers') }} c\n    LEFT JOIN {{ ref('stg_customer_preferences') }} cp ON c.customer_id = cp.customer_id\n),\n\ncustomer_feedback_agg AS (\n    SELECT\n        customer_id,\n        AVG(rating) as avg_rating,\n        COUNT(*) as total_feedback_count\n    FROM {{ ref('stg_customer_feedback') }}\n    GROUP BY customer_id\n),\n\nfinal_profile AS (\n    SELECT\n        cb.*,\n        COALESCE(cf.avg_rating, 0) as average_rating,\n        COALESCE(cf.total_feedback_count, 0) as feedback_count\n    FROM customer_base cb\n    LEFT JOIN customer_feedback_agg cf ON cb.customer_id = cf.customer_id\n)\n\nSELECT * FROM final_profile "
+    },
+    {
+      "id": "m11",
+      "name": "customer_orders",
+      "project": "p2",
+      "description": "customer_orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH customers AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        email,\n        customer_segment\n    FROM {{ ref('stg_customers') }}\n),\n\nretail_sales AS (\n    SELECT\n        customer_id,\n        sale_id,\n        sale_date,\n        CAST(total_amount AS DECIMAL(10,2)) as total_amount\n    FROM retail.raw_sales\n),\n\ncustomer_orders AS (\n    SELECT\n        c.customer_id,\n        c.first_name,\n        c.last_name,\n        c.email,\n        c.customer_segment,\n        COUNT(s.sale_id) AS order_count,\n        SUM(s.total_amount) AS total_spend,\n        MIN(s.sale_date) AS first_order_date,\n        MAX(s.sale_date) AS most_recent_order_date\n    FROM customers c\n    LEFT JOIN retail_sales s ON c.customer_id = s.customer_id\n    GROUP BY 1, 2, 3, 4, 5\n)\n\nSELECT * FROM customer_orders "
+    },
+    {
+      "id": "m12",
+      "name": "stg_product_costs",
+      "project": "p3",
+      "description": "stg_product_costs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT * FROM finance.raw_product_costs "
+    },
+    {
+      "id": "m13",
+      "name": "stg_marketing_costs",
+      "project": "p3",
+      "description": "stg_marketing_costs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    campaign_id,\n    product_id,\n    campaign_name,\n    marketing_cost,\n    start_date,\n    end_date\nFROM {{ ref('raw_marketing_costs') }} "
+    },
+    {
+      "id": "m14",
+      "name": "stg_operational_costs",
+      "project": "p3",
+      "description": "stg_operational_costs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='view') }}\n\nSELECT\n    cost_center_id,\n    warehouse_location,\n    monthly_rent,\n    staff_cost,\n    utilities_cost,\n    month_date\nFROM {{ ref('raw_operational_costs') }} "
+    },
+    {
+      "id": "m15",
+      "name": "my_first_dbt_model",
+      "project": "p3",
+      "description": "my_first_dbt_model",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "\n/*\n    Welcome to your first dbt model!\n    Did you know that you can also configure models directly within SQL files?\n    This will override configurations stated in dbt_project.yml\n\n    Try changing \"table\" to \"view\" below\n*/\n\n{{ config(materialized='table') }}\n\nwith source_data as (\n\n    select 1 as id\n    union all\n    select null as id\n\n)\n\nselect *\nfrom source_data\n\n/*\n    Uncomment the line below to remove records with null `id` values\n*/\n\n-- where id is not null\n"
+    },
+    {
+      "id": "m16",
+      "name": "my_second_dbt_model",
+      "project": "p3",
+      "description": "my_second_dbt_model",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "\n-- Use the `ref` function to select from other models\n\nselect *\nfrom {{ ref('my_first_dbt_model') }}\nwhere id = 1\n"
+    },
+    {
+      "id": "m17",
+      "name": "product_profitability",
+      "project": "p3",
+      "description": "product_profitability",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH product_costs AS (\n    SELECT\n        product_id,\n        CAST(cost_price AS DECIMAL(10,2)) as cost_price,\n        CAST(overhead_cost AS DECIMAL(10,2)) as overhead_cost,\n        CAST((cost_price + overhead_cost) AS DECIMAL(10,2)) as total_cost\n    FROM {{ ref('stg_product_costs') }}\n),\n\nsales_data AS (\n    SELECT\n        p.product_id,\n        p.product_name,\n        p.category,\n        s.quantity,\n        CAST(s.total_amount AS DECIMAL(10,2)) as total_amount\n    FROM retail.raw_products p\n    JOIN retail.raw_sales s ON p.product_id = s.product_id\n    GROUP BY 1, 2, 3, 4, 5\n),\n\nprofitability AS (\n    SELECT\n        s.product_id,\n        s.product_name,\n        s.category,\n        COUNT(*) as total_units_sold,\n        SUM(CAST(s.total_amount AS DECIMAL(10,2))) as total_revenue,\n        pc.total_cost * COUNT(*) as total_cost,\n        SUM(CAST(s.total_amount AS DECIMAL(10,2))) - (pc.total_cost * COUNT(*)) as gross_profit,\n        CASE \n            WHEN SUM(CAST(s.total_amount AS DECIMAL(10,2))) > 0 \n            THEN ((SUM(CAST(s.total_amount AS DECIMAL(10,2))) - (pc.total_cost * COUNT(*))) / SUM(CAST(s.total_amount AS DECIMAL(10,2)))) * 100 \n            ELSE 0 \n        END as profit_margin\n    FROM sales_data s\n    JOIN product_costs pc ON s.product_id = pc.product_id\n    GROUP BY 1, 2, 3, pc.total_cost\n)\n\nSELECT * FROM profitability "
+    },
+    {
+      "id": "m18",
+      "name": "complete_financial_metrics",
+      "project": "p3",
+      "description": "complete_financial_metrics",
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "Primary key",
+          "isPrimaryKey": true,
+          "isForeignKey": false
+        }
+      ],
+      "sql": "{{ config(materialized='table') }}\n\nWITH sales_data AS (\n    SELECT\n        p.product_id,\n        p.product_name,\n        p.category,\n        s.quantity,\n        CAST(s.total_amount AS DECIMAL(10,2)) as total_amount\n    FROM {{ ref('stg_products') }} p\n    JOIN {{ ref('stg_sales') }} s ON p.product_id = s.product_id\n),\n\nproduct_metrics AS (\n    SELECT\n        s.*,\n        pc.cost_price,\n        pc.overhead_cost,\n        CAST(mc.marketing_cost AS DECIMAL(10,2)) as marketing_cost,\n        mc.campaign_name\n    FROM sales_data s\n    LEFT JOIN {{ ref('stg_product_costs') }} pc ON s.product_id = pc.product_id\n    LEFT JOIN {{ ref('stg_marketing_costs') }} mc ON s.product_id = mc.product_id\n),\n\nfinal_metrics AS (\n    SELECT\n        product_id,\n        product_name,\n        category,\n        SUM(quantity) as total_units_sold,\n        SUM(total_amount) as total_revenue,\n        SUM(quantity * (cost_price + overhead_cost)) as total_cost,\n        SUM(total_amount - (quantity * (cost_price + overhead_cost))) as gross_profit,\n        marketing_cost,\n        campaign_name\n    FROM product_metrics\n    GROUP BY 1, 2, 3, marketing_cost, campaign_name\n)\n\nSELECT \n    *,\n    gross_profit - marketing_cost as net_profit,\n    (gross_profit - marketing_cost) / NULLIF(total_revenue, 0) * 100 as net_profit_margin\nFROM final_metrics "
+    }
+  ],
+  "lineage": [
+    {
+      "source": "m3",
+      "target": "m5"
+    },
+    {
+      "source": "m1",
+      "target": "m5"
+    },
+    {
+      "source": "m4",
+      "target": "m6"
+    },
+    {
+      "source": "m1",
+      "target": "m6"
+    },
+    {
+      "source": "m7",
+      "target": "m10"
+    },
+    {
+      "source": "m9",
+      "target": "m10"
+    },
+    {
+      "source": "m8",
+      "target": "m10"
+    },
+    {
+      "source": "m7",
+      "target": "m11"
+    },
+    {
+      "source": "m15",
+      "target": "m16"
+    },
+    {
+      "source": "m12",
+      "target": "m17"
+    },
+    {
+      "source": "m1",
+      "target": "m18"
+    },
+    {
+      "source": "m3",
+      "target": "m18"
+    },
+    {
+      "source": "m12",
+      "target": "m18"
+    },
+    {
+      "source": "m13",
+      "target": "m18"
+    }
+  ]
+}

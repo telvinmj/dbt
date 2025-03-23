@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: retail_data
+    schema: main
+    tables:
+      - name: raw_products
+      - name: raw_sales
+      - name: raw_inventory
+      - name: raw_promotions 

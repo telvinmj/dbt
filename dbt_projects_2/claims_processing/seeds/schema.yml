@@ -1,0 +1,19 @@
+version: 2
+
+seeds:
+  - name: claims
+    description: "Insurance claims information"
+    config:
+      schema: raw_data
+      column_types:
+        settlement_date: varchar
+        settlement_amount: varchar
+      quote_columns: false
+      
+  - name: adjusters
+    description: "Insurance claims adjusters information"
+    config:
+      schema: raw_data
+      column_types:
+        active: boolean
+      quote_columns: false 

@@ -1,0 +1,6 @@
+feedback_id,customer_id,sale_id,rating,feedback_text,feedback_date
+1,101,1,5,"Great product quality",2024-01-16
+2,102,2,4,"Good value for money",2024-01-16
+3,101,3,3,"Delivery was delayed",2024-01-17
+4,103,4,5,"Excellent service",2024-01-18
+5,102,5,4,"Product as described",2024-01-19 

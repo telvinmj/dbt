@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: policies
+    description: "Insurance policies information"
+    config:
+      schema: raw_data
+      
+  - name: agents
+    description: "Insurance agents information"
+    config:
+      schema: raw_data 

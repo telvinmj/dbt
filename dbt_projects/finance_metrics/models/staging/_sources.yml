@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: finance_metrics
+    schema: main
+    tables:
+      - name: raw_product_costs
+      - name: raw_marketing_costs
+      - name: raw_operational_costs
+  - name: retail_ops
+    schema: main
+    tables:
+      - name: raw_sales
+      - name: raw_products 

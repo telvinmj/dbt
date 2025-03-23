@@ -1,0 +1,6 @@
+customer_id,first_name,last_name,email,signup_date,customer_segment
+101,John,Doe,john.doe@email.com,2023-12-01,Premium
+102,Jane,Smith,jane.smith@email.com,2023-12-15,Standard
+103,Bob,Johnson,bob.johnson@email.com,2023-12-20,Premium
+104,Alice,Brown,alice.brown@email.com,2024-01-01,Standard
+105,Charlie,Wilson,charlie.wilson@email.com,2024-01-05,Premium 

@@ -1,0 +1,48 @@
+# Common profile for all three projects
+insurance_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '/Users/telvin/Desktop/dbt/dbt_projects_2') }}/insurance_data.db"
+      extensions:
+        - httpfs
+        - parquet
+      threads: 4
+
+# Project-specific profiles
+claims_processing:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '/Users/telvin/Desktop/dbt/dbt_projects_2') }}/insurance_data.db"
+      schema: claims_processing
+      extensions:
+        - httpfs
+        - parquet
+      threads: 4
+
+policy_management:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '/Users/telvin/Desktop/dbt/dbt_projects_2') }}/insurance_data.db"
+      schema: policy_management
+      extensions:
+        - httpfs
+        - parquet
+      threads: 4
+
+customer_risk:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_PROJECT_DIR', '/Users/telvin/Desktop/dbt/dbt_projects_2') }}/insurance_data.db"
+      schema: customer_risk
+      extensions:
+        - httpfs
+        - parquet
+      threads: 4 

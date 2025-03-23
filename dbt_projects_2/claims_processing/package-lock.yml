@@ -1,0 +1,4 @@
+packages:
+  - local: ../policy_management
+  - local: ../customer_risk
+sha1_hash: eecf144c08e74ee2295769902dacf99659f1ff0d

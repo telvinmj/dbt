@@ -1,0 +1,33 @@
+name: 'customer_risk'
+version: '1.0.0'
+config-version: 2
+
+profile: 'customer_risk'
+
+model-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  customer_risk:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    mart:
+      +materialized: table
+      +schema: mart
+
+seeds:
+  customer_risk:
+    +schema: raw_data 

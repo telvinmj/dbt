@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: customers
+    description: "Customer information and demographics"
+    config:
+      schema: raw_data
+      
+  - name: risk_factors
+    description: "Customer risk assessment factors"
+    config:
+      schema: raw_data 

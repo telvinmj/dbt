@@ -1,0 +1,6 @@
+inventory_id,product_id,warehouse_location,quantity_on_hand,reorder_point,last_restock_date
+1,1,WAREHOUSE-A,150,50,2024-01-10
+2,2,WAREHOUSE-B,75,30,2024-01-12
+3,3,WAREHOUSE-A,100,40,2024-01-15
+4,4,WAREHOUSE-C,45,20,2024-01-18
+5,5,WAREHOUSE-B,80,35,2024-01-20 

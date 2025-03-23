@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: finance
+    database: raw_data
+    schema: finance
+    tables:
+      - name: raw_transactions
+        columns:
+          - name: transaction_id
+            description: Primary key for transactions
+          - name: order_id
+            description: Reference to order in the ecommerce system
+          - name: transaction_date
+            description: Date of the transaction
+          - name: payment_method
+            description: Method of payment (credit card, PayPal, etc.)
+          - name: amount
+            description: Transaction amount
+          - name: status
+            description: Transaction status (completed, failed, refunded, etc.) 

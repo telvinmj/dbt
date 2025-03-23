@@ -1,0 +1,6 @@
+preference_id,customer_id,preferred_category,communication_channel,last_updated
+1,101,Apparel,email,2024-01-15
+2,102,Footwear,sms,2024-01-16
+3,103,Accessories,email,2024-01-17
+4,104,Apparel,sms,2024-01-18
+5,105,Footwear,email,2024-01-19 

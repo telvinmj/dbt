@@ -1,0 +1,114 @@
+version: 2
+
+sources:
+  - name: policy_management_raw_data
+    schema: raw_data
+    description: Raw policy management data loaded from seed files
+    tables:
+      - name: policies
+        description: Insurance policies information
+        columns:
+          - name: policy_id
+            description: Unique identifier for the policy
+          - name: customer_id
+            description: Identifier for the policy owner
+          - name: policy_type
+            description: Type of policy (AUTO, HOME, HEALTH)
+          - name: start_date
+            description: Policy effective start date
+          - name: end_date
+            description: Policy expiration date
+          - name: premium_amount
+            description: Annual premium amount for the policy
+          - name: coverage_amount
+            description: Total coverage amount of the policy
+          - name: status
+            description: Current status of the policy (e.g., ACTIVE, EXPIRED)
+          - name: agent_id
+            description: Identifier for the agent who sold the policy
+          - name: policy_number
+            description: Business-readable policy number
+      
+      - name: agents
+        description: Insurance agents information
+        columns:
+          - name: agent_id
+            description: Unique identifier for the agent
+          - name: agent_name
+            description: Full name of the agent
+          - name: agent_email
+            description: Email address of the agent
+          - name: office_location
+            description: Office location of the agent
+          - name: years_experience
+            description: Number of years of experience
+          - name: specialization
+            description: Agent's area of specialization (AUTO, HOME, HEALTH)
+          - name: active
+            description: Whether the agent is currently active (true/false)
+
+models:
+  - name: stg_policies
+    description: Cleaned policies data with standardized fields
+    columns:
+      - name: policy_id
+        description: Unique identifier for the policy
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Identifier for the policy owner
+      - name: policy_type
+        description: Type of policy (standardized)
+      - name: start_date
+        description: Policy effective start date
+      - name: end_date
+        description: Policy expiration date
+      - name: premium_amount
+        description: Annual premium amount for the policy
+      - name: coverage_amount
+        description: Total coverage amount of the policy
+      - name: status
+        description: Current status of the policy (standardized)
+      - name: agent_id
+        description: Identifier for the agent who sold the policy
+      - name: policy_number
+        description: Business-readable policy number
+      - name: policy_term_days
+        description: Number of days in the policy term
+      - name: effective_status
+        description: Status based on the current date relative to start/end dates
+      - name: coverage_premium_ratio
+        description: Ratio of coverage amount to premium amount
+
+  - name: stg_agents
+    description: Cleaned agents data with standardized fields
+    columns:
+      - name: agent_id
+        description: Unique identifier for the agent
+        tests:
+          - unique
+          - not_null
+      - name: agent_name
+        description: Full name of the agent
+      - name: agent_email
+        description: Email address of the agent
+      - name: office_location
+        description: Office location of the agent
+      - name: years_experience
+        description: Number of years of experience
+      - name: specialization
+        description: Agent's area of specialization (standardized)
+      - name: active
+        description: Whether the agent is currently active (true/false)
+      - name: experience_level
+        description: Experience level based on years (JUNIOR, MID, SENIOR)
+
+  - name: int_policies_enriched
+    description: Policies data enriched with agent information
+  
+  - name: mart_policy_details
+    description: Comprehensive policy details including customer risk profiles
+  
+  - name: mart_customer_risk_profile
+    description: Customer risk profile with risk scores and category 

@@ -1,0 +1,4 @@
+packages:
+  - local: ../retail_ops
+  - local: ../customer_360
+sha1_hash: 3857f3e5ba4fc0932172650605b98991f5fbd742

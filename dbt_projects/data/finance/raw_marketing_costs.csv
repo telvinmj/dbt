@@ -1,0 +1,6 @@
+campaign_id,product_id,campaign_name,marketing_cost,start_date,end_date
+1,1,Social Media Ads,1000.00,2024-01-01,2024-01-31
+2,2,Email Campaign,500.00,2024-01-15,2024-01-31
+3,3,Display Ads,750.00,2024-01-01,2024-01-15
+4,4,Influencer Marketing,2000.00,2024-01-01,2024-01-31
+5,5,PPC Campaign,1500.00,2024-01-15,2024-01-31 

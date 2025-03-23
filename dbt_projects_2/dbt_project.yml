@@ -1,0 +1,23 @@
+name: 'insurance_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'insurance_dbt'
+
+model-paths: []
+analysis-paths: []
+test-paths: []
+seed-paths: []
+macro-paths: []
+snapshot-paths: []
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Define the packages that make up our local dbt multi-project setup
+packages:
+  - local: ./claims_processing
+  - local: ./policy_management
+  - local: ./customer_risk 

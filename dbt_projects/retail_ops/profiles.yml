@@ -1,0 +1,7 @@
+retail_ops:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_projects/data/retail_warehouse.duckdb
+      schema: retail 

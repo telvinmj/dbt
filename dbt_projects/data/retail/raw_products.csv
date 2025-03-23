@@ -1,0 +1,6 @@
+product_id,product_name,category,unit_price,created_at
+1,T-Shirt,Apparel,19.99,2024-01-01
+2,Jeans,Apparel,49.99,2024-01-01
+3,Sneakers,Footwear,79.99,2024-01-01
+4,Watch,Accessories,129.99,2024-01-01
+5,Backpack,Accessories,39.99,2024-01-01 

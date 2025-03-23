@@ -1,0 +1,40 @@
+version: 2
+
+sources:
+  - name: marketing
+    database: raw_data
+    schema: marketing
+    tables:
+      - name: raw_campaigns
+        columns:
+          - name: campaign_id
+            description: Primary key for campaigns
+          - name: campaign_name
+            description: Name of the marketing campaign
+          - name: channel
+            description: Marketing channel (email, social, etc.)
+          - name: start_date
+            description: Start date of campaign
+          - name: end_date
+            description: End date of campaign
+          - name: budget
+            description: Campaign budget
+          - name: target_segment
+            description: Target customer segment
+      
+      - name: raw_customer_interactions
+        columns:
+          - name: interaction_id
+            description: Primary key for interactions
+          - name: customer_id
+            description: Reference to customer in the ecommerce system
+          - name: campaign_id
+            description: Reference to marketing campaign
+          - name: interaction_date
+            description: Date of the interaction
+          - name: channel
+            description: Channel of interaction (email, website, app)
+          - name: interaction_type
+            description: Type of interaction (click, view, etc.)
+          - name: conversion_flag
+            description: Flag indicating if interaction led to conversion 

@@ -1,0 +1,34 @@
+version: 2
+
+sources:
+  - name: ecommerce
+    database: raw_data
+    schema: ecommerce
+    tables:
+      - name: raw_orders
+        columns:
+          - name: order_id
+            description: Primary key for orders
+          - name: customer_id
+            description: Foreign key to customers
+          - name: order_date
+            description: Date when order was placed
+          - name: status
+            description: Order status (completed, shipped, canceled, etc.)
+          - name: amount
+            description: Order total amount
+      
+      - name: raw_customers
+        columns:
+          - name: customer_id
+            description: Primary key for customers
+          - name: first_name
+            description: Customer's first name
+          - name: last_name
+            description: Customer's last name
+          - name: email
+            description: Customer's email address
+          - name: registration_date
+            description: Date when customer registered
+          - name: segment
+            description: Customer segment (new, returning, VIP) 

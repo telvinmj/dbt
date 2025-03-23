@@ -1,0 +1,11 @@
+adjuster_id,adjuster_name,adjuster_email,department,specialty,years_experience,active
+ADJ001,John Smith,j.smith@insurance.com,Claims,AUTO,8,true
+ADJ002,Lisa Johnson,l.johnson@insurance.com,Claims,HOME,12,true
+ADJ003,Robert Davis,r.davis@insurance.com,Claims,AUTO,5,true
+ADJ004,Emily Wilson,e.wilson@insurance.com,Claims,HEALTH,10,true
+ADJ005,Michael Brown,m.brown@insurance.com,Claims,HOME,7,true
+ADJ006,Sarah Miller,s.miller@insurance.com,Claims,AUTO,3,false
+ADJ007,James Taylor,j.taylor@insurance.com,Claims,HEALTH,15,true
+ADJ008,Jennifer Garcia,j.garcia@insurance.com,Claims,HOME,9,true
+ADJ009,David Rodriguez,d.rodriguez@insurance.com,Claims,AUTO,6,true
+ADJ010,Jessica Martinez,j.martinez@insurance.com,Claims,HEALTH,4,false

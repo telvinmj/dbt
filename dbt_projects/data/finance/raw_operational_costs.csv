@@ -1,0 +1,4 @@
+cost_center_id,warehouse_location,monthly_rent,staff_cost,utilities_cost,month_date
+1,WAREHOUSE-A,5000.00,15000.00,2000.00,2024-01-01
+2,WAREHOUSE-B,4500.00,12000.00,1800.00,2024-01-01
+3,WAREHOUSE-C,4000.00,10000.00,1500.00,2024-01-01 

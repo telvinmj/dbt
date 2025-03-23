@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: finance_data
+    schema: main
+    tables:
+      - name: raw_product_costs
+      - name: raw_marketing_costs
+      - name: raw_operational_costs 
