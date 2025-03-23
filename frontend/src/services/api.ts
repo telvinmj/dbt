@@ -53,17 +53,27 @@ export const refreshProject = async (id: string): Promise<Project> => {
 // Models
 export const getModels = async (
   projectId?: string,
-  search?: string
+  search?: string,
+  tag?: string,
+  materialized?: string
 ): Promise<Model[]> => {
   let url = '/api/models';
-  const params = {};
+  const params: Record<string, string> = {};
   
   if (projectId) {
-    (params as any).project_id = projectId;
+    params.project_id = projectId;
   }
   
   if (search) {
-    (params as any).search = search;
+    params.search = search;
+  }
+  
+  if (tag) {
+    params.tag = tag;
+  }
+  
+  if (materialized) {
+    params.materialized = materialized;
   }
   
   const response = await api.get(url, { params });

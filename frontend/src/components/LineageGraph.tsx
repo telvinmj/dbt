@@ -246,7 +246,7 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       // Find source models (no incoming edges)
       const incomingEdges: Record<string, number> = {};
-      deduplicatedLineage.forEach(link => {
+    deduplicatedLineage.forEach(link => {
         if (!incomingEdges[link.target]) {
           incomingEdges[link.target] = 0;
         }
@@ -265,7 +265,7 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       // Breadth-first traversal to assign levels
       let frontier = [...sourceModelIds];
-      let currentLevel = 0;
+    let currentLevel = 0;
       
       while (frontier.length > 0) {
         const nextFrontier: string[] = [];
@@ -332,10 +332,10 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       const y = level * yGap;
       
       flowNodes.push({
-        id: model.id,
+      id: model.id,
         position: { x, y },
-        data: { 
-          label: (
+      data: { 
+        label: (
             <div style={{ padding: '5px' }}>
               <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {model.name}
@@ -343,14 +343,14 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
               <div style={{ fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {model.project}
               </div>
-            </div>
+          </div>
           ),
           model
-        },
-        style: {
-          background: '#fff',
-          border: '1px solid #ddd',
-          borderRadius: '5px',
+      },
+      style: {
+        background: '#fff',
+        border: '1px solid #ddd',
+        borderRadius: '5px',
           width: nodeWidth,
           cursor: 'pointer',
         },
@@ -362,8 +362,8 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
     // Create edges
     const flowEdges: Edge[] = deduplicatedLineage.map((link, index) => ({
       id: `${link.source}-${link.target}`,
-      source: link.source,
-      target: link.target,
+        source: link.source,
+        target: link.target,
       type: 'smoothstep',
       animated: false,
       style: { stroke: '#aaa' },

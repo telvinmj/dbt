@@ -21,6 +21,7 @@ import {
 import { getModel, getModelWithLineage } from '../services/api';
 import LineageGraph from '../components/LineageGraph';
 import ModelDetailView from '../components/ModelDetailView';
+import RelatedModels from '../components/RelatedModels';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -191,6 +192,15 @@ const ModelDetail: React.FC = () => {
       <Tabs activeKey={activeTab} onChange={handleTabChange} type="card">
         <TabPane tab="Details" key="details">
           <ModelDetailView model={model} onDescriptionUpdated={handleDescriptionUpdated} />
+          
+          {/* Add RelatedModels component when lineage data is available */}
+          {lineageData && (
+            <RelatedModels 
+              model={model}
+              upstream={lineageData.upstream}
+              downstream={lineageData.downstream}
+            />
+          )}
         </TabPane>
         
         <TabPane tab="Lineage" key="lineage">

@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Tabs, Spin, Alert, Layout, Menu, Space, Button } from 'antd';
+import { Spin, Alert, Layout, Menu, Space, Button, Tag, Table } from 'antd';
 import { 
   TableOutlined, 
   ApartmentOutlined, 
   ProjectOutlined, 
   DashboardOutlined,
   DatabaseOutlined,
-  SyncOutlined
+  SyncOutlined,
+  LinkOutlined
 } from '@ant-design/icons';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
@@ -17,9 +18,221 @@ import { getModels, getProjects, getModelWithLineage, initializeDatabase, refres
 import ModelDetail from './pages/ModelDetail';
 import ExportButton from './components/ExportButton';
 import WatcherStatusIndicator from './components/WatcherStatusIndicator';
+import AdvancedSearch from './components/AdvancedSearch';
 
 const { Header, Content, Footer } = Layout;
-const { TabPane } = Tabs;
+
+// Models Table Component
+interface ModelsTableProps {
+  models: Model[];
+  projects: Project[];
+  lineage: LineageLink[];
+}
+
+const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) => {
+  const [filteredModels, setFilteredModels] = useState<Model[]>(models);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchFilters, setSearchFilters] = useState<{
+    projectId?: string;
+    search?: string;
+    tag?: string;
+    materialized?: string;
+  }>({});
+
+  // Create a memoized version of applyFilters to avoid dependency issues
+  const applyFilters = useCallback((filters: any) => {
+    let results = [...models];
+    
+    if (filters.projectId) {
+      const projectName = projects.find(p => p.id === filters.projectId)?.name;
+      if (projectName) {
+        results = results.filter(model => model.project === projectName);
+      }
+    }
+    
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      results = results.filter(model => 
+        model.name.toLowerCase().includes(searchLower) || 
+        (model.description && model.description.toLowerCase().includes(searchLower)));
+    }
+    
+    if (filters.tag) {
+      results = results.filter(model => 
+        model.tags && model.tags.includes(filters.tag));
+    }
+    
+    if (filters.materialized) {
+      results = results.filter(model => 
+        model.materialized === filters.materialized);
+    }
+    
+    return results;
+  }, [models, projects]);
+
+  // Update filtered models when models prop changes or when filters change
+  useEffect(() => {
+    // Only reset filtered models if we don't have active filters
+    if (
+      Object.keys(searchFilters).length === 0 || 
+      (!searchFilters.projectId && !searchFilters.search && !searchFilters.tag && !searchFilters.materialized)
+    ) {
+      setFilteredModels(models);
+    } else {
+      // Re-apply existing filters when models data changes
+      const updated = applyFilters(searchFilters);
+      setFilteredModels(updated);
+    }
+  }, [models, searchFilters, applyFilters]);
+
+  // Handle search/filter changes
+  const handleSearch = async (filters: any) => {
+    setLoading(true);
+    
+    try {
+      // Apply filters locally first for immediate feedback
+      const localResults = applyFilters(filters);
+      setFilteredModels(localResults);
+      
+      // If searching with text and no local results, try the API
+      if (filters.search && localResults.length === 0) {
+        const apiResults = await getModels(
+          filters.projectId,
+          filters.search,
+          filters.tag,
+          filters.materialized
+        );
+        setFilteredModels(apiResults);
+      }
+      
+      setSearchFilters(filters);
+    } catch (error) {
+      console.error('Error searching models:', error);
+      // Fall back to local filtering on error
+      setFilteredModels(applyFilters(filters));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check for cross-project connections
+  const hasCrossProjectConnection = (modelId: string): boolean => {
+    const connections = lineage.filter(
+      link => link.source === modelId || link.target === modelId
+    );
+    
+    if (connections.length === 0) return false;
+    
+    // Find the model's project
+    const model = models.find(m => m.id === modelId);
+    if (!model) return false;
+    
+    // Check if any connected model is from a different project
+    for (const conn of connections) {
+      const connectedId = conn.source === modelId ? conn.target : conn.source;
+      const connectedModel = models.find(m => m.id === connectedId);
+      
+      if (connectedModel && connectedModel.project !== model.project) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Define table columns
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text: string, record: Model) => (
+        <Space>
+          <Link to={`/models/${record.id}`} className="model-link">
+            {text}
+          </Link>
+          {hasCrossProjectConnection(record.id) && (
+            <span className="cross-project-indicator">
+              <LinkOutlined /> Cross-Project
+            </span>
+          )}
+        </Space>
+      ),
+      sorter: (a: Model, b: Model) => a.name.localeCompare(b.name),
+    },
+    {
+      title: 'Project',
+      dataIndex: 'project',
+      key: 'project',
+      render: (text: string) => (
+        <Tag color="blue" className="project-badge">
+          {text}
+        </Tag>
+      ),
+      filters: projects.map(p => ({ text: p.name, value: p.name })),
+      onFilter: (value: any, record: Model) => record.project === value,
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string, record: Model) => (
+        <div className="description-cell">
+          {text || <span className="no-description">No description</span>}
+          {record.ai_description && !record.user_edited && (
+            <Tag color="purple" style={{ marginLeft: 8, fontSize: '12px', padding: '0 6px' }}>
+              AI
+            </Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Schema',
+      dataIndex: 'schema',
+      key: 'schema',
+      render: (text: string) => text || 'N/A',
+    },
+    {
+      title: 'Materialized',
+      dataIndex: 'materialized',
+      key: 'materialized',
+      render: (text: string) => (
+        <Tag color={text === 'view' ? 'green' : 'orange'}>
+          {text || 'N/A'}
+        </Tag>
+      ),
+      filters: [
+        { text: 'View', value: 'view' },
+        { text: 'Table', value: 'table' },
+        { text: 'Incremental', value: 'incremental' },
+        { text: 'Ephemeral', value: 'ephemeral' },
+      ],
+      onFilter: (value: any, record: Model) => record.materialized === value,
+    },
+  ];
+
+  return (
+    <div className="models-section">
+      <h2>Models</h2>
+      
+      <AdvancedSearch onSearch={handleSearch} initialFilters={searchFilters} />
+      
+      <Table 
+        dataSource={filteredModels} 
+        columns={columns}
+        rowKey="id"
+        loading={loading}
+        pagination={{ 
+          pageSize: 15, 
+          showSizeChanger: true, 
+          pageSizeOptions: ['10', '15', '30', '50'],
+          showTotal: (total) => `Total ${total} models`
+        }}
+      />
+    </div>
+  );
+};
 
 function App() {
   const [models, setModels] = useState<Model[]>([]);
@@ -218,44 +431,6 @@ function App() {
     </div>
   );
 
-  const renderModels = () => (
-    <div className="models-section">
-      <h2>Models ({models.length})</h2>
-      <table className="models-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Project</th>
-            <th>Description</th>
-            <th>Schema</th>
-            <th>Materialized</th>
-          </tr>
-        </thead>
-        <tbody>
-          {models.map(model => {
-            return (
-              <tr key={model.id} className="model-row">
-                <td>{model.id}</td>
-                <td>
-                  <Link to={`/models/${model.id}`} className="model-link">
-                    {model.name}
-                  </Link>
-                </td>
-                <td>{model.project}</td>
-                <td className="description-cell">
-                  {model.description || <span className="no-description">No description</span>}
-                </td>
-                <td>{model.schema || 'N/A'}</td>
-                <td>{model.materialized || 'N/A'}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-
   const renderProjects = () => (
     <div className="projects-section">
       <h2>Projects ({projects.length})</h2>
@@ -370,7 +545,7 @@ function App() {
         
         <Routes>
           <Route path="/" element={renderDashboard()} />
-          <Route path="/models" element={renderModels()} />
+          <Route path="/models" element={<ModelsTable models={models} projects={projects} lineage={lineage} />} />
           <Route path="/models/:id" element={<ModelDetail />} />
           <Route path="/projects" element={renderProjects()} />
           <Route path="/projects/:id" element={<ModelDetail />} />

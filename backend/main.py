@@ -71,9 +71,27 @@ async def get_project(project_id: str):
     raise HTTPException(status_code=404, detail="Project not found")
 
 @app.get("/api/models")
-async def get_models(project_id: str = None, search: str = None):
-    """Get all models, optionally filtered by project and search term"""
+async def get_models(project_id: str = None, search: str = None, tag: str = None, materialized: str = None):
+    """Get all models, optionally filtered by project, search term, tag, or materialization type"""
     models = metadata_service.get_models(project_id, search)
+    
+    # Apply additional filters
+    if tag or materialized:
+        filtered_models = []
+        for model in models:
+            # Filter by tag if specified
+            if tag:
+                model_tags = model.get("tags", [])
+                if not model_tags or tag not in model_tags:
+                    continue
+                    
+            # Filter by materialization type if specified
+            if materialized:
+                if model.get("materialized") != materialized:
+                    continue
+                    
+            filtered_models.append(model)
+        models = filtered_models
     
     # Add default values for missing fields
     defaults = {
