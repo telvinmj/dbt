@@ -18,6 +18,9 @@ from backend.services.file_watcher_service import FileWatcherService
 # Load environment variables
 load_dotenv()
 
+# Get dbt projects directory from environment (set either in run.py or .env)
+dbt_projects_dir = os.environ.get("DBT_PROJECTS_DIR", "dbt_projects_2")
+
 # Initialize FastAPI app
 app = FastAPI(title="DBT Metadata Explorer API")
 
@@ -30,14 +33,14 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Initialize metadata service
-metadata_service = MetadataService()
+# Initialize metadata service with the specified projects directory
+metadata_service = MetadataService(dbt_projects_dir=dbt_projects_dir)
 
-# Initialize file watcher service
+# Initialize file watcher service with the same projects directory
 file_watcher = FileWatcherService(
     dbt_projects_dir=metadata_service.dbt_projects_dir,
     refresh_callback=metadata_service.refresh,
-    watch_interval=30  # Check every 30 seconds
+    watch_interval=int(os.environ.get("WATCHER_POLL_INTERVAL", 30))  # Check interval in seconds
 )
 
 # Start file watcher on startup (disabled by default)
