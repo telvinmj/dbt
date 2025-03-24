@@ -9,14 +9,14 @@ WITH stg_claim AS (
     SELECT * FROM {{ ref('stg_claim') }}
 ),
 
--- Local reference to customer data
+-- Explicit cross-project reference to customer data
 customer_dim AS (
-    SELECT * FROM {{ ref('stg_customer') }}
+    SELECT * FROM {{ ref('stg_customer', 'customer_project') }}
 ),
 
--- Local reference to policy data
+-- Explicit cross-project reference to policy data
 policy_fact AS (
-    SELECT * FROM {{ ref('stg_policy') }}
+    SELECT * FROM {{ ref('stg_policy', 'policy_project') }}
 ),
 
 claim_fact AS (

@@ -6,7 +6,7 @@
 }}
 
 WITH stg_customer AS (
-    SELECT * FROM {{ ref('stg_customer') }}
+    SELECT * FROM {{ ref('stg_customer', 'customer_project') }}
 ),
 
 customer_dim AS (

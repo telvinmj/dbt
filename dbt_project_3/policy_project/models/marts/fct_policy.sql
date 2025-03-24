@@ -6,12 +6,12 @@
 }}
 
 WITH stg_policy AS (
-    SELECT * FROM {{ ref('stg_policy') }}
+    SELECT * FROM {{ ref('stg_policy', 'policy_project') }}
 ),
 
--- Local reference to customer data
+-- Explicit cross-project reference to customer data
 customer_dim AS (
-    SELECT * FROM {{ ref('stg_customer') }}
+    SELECT * FROM {{ ref('stg_customer', 'customer_project') }}
 ),
 
 policy_fact AS (

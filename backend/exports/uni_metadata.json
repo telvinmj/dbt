@@ -3,20 +3,17 @@
     {
       "id": "claims_project",
       "name": "claims_project",
-      "description": "claims_project dbt project",
-      "path": "/Users/telvin/Desktop/dbt/dbt_project_3/claims_project"
+      "description": "claims_project dbt project"
     },
     {
       "id": "customer_project",
       "name": "customer_project",
-      "description": "customer_project dbt project",
-      "path": "/Users/telvin/Desktop/dbt/dbt_project_3/customer_project"
+      "description": "customer_project dbt project"
     },
     {
       "id": "policy_project",
       "name": "policy_project",
-      "description": "policy_project dbt project",
-      "path": "/Users/telvin/Desktop/dbt/dbt_project_3/policy_project"
+      "description": "policy_project dbt project"
     }
   ],
   "models": [
@@ -30,21 +27,21 @@
           "name": "claim_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -93,7 +90,7 @@
           "name": "adjuster_id",
           "type": "VARCHAR",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -111,7 +108,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        claim_id,\n        policy_id,\n        customer_id,\n        claim_date,\n        incident_date,\n        description,\n        claim_amount,\n        approved_amount,\n        status,\n        adjuster_id,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_claims') }}\n)\n\nSELECT \n    claim_id,\n    policy_id,\n    customer_id,\n    claim_date,\n    incident_date,\n    description,\n    claim_amount,\n    approved_amount,\n    status,\n    adjuster_id,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        claim_id,\n        policy_id,\n        customer_id,\n        claim_date,\n        incident_date,\n        description,\n        claim_amount,\n        approved_amount,\n        status,\n        adjuster_id,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_claims') }}\n)\n\nSELECT \n    claim_id,\n    policy_id,\n    customer_id,\n    claim_date,\n    incident_date,\n    description,\n    claim_amount,\n    approved_amount,\n    status,\n    adjuster_id,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_claim.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.claims_project.stg_claim",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "claims_staging",
+          "name": "stg_claim",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "claims_project_fct_claim",
@@ -123,21 +144,21 @@
           "name": "claim_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -186,7 +207,7 @@
           "name": "adjuster_id",
           "type": "VARCHAR",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -274,7 +295,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_claim AS (\n    SELECT * FROM {{ ref('stg_claim') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\n-- Local reference to policy data\npolicy_fact AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\nclaim_fact AS (\n    SELECT\n        c.claim_id,\n        c.policy_id,\n        c.customer_id,\n        c.claim_date,\n        c.incident_date,\n        c.description,\n        c.claim_amount,\n        c.approved_amount,\n        c.status,\n        c.adjuster_id,\n        \n        -- Customer information\n        cust.first_name || ' ' || cust.last_name AS customer_name,\n        cust.email AS customer_email,\n        \n        -- Policy information\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        \n        -- Calculated fields\n        DATEDIFF('day', c.incident_date, c.claim_date) AS days_to_file_claim,\n        CASE \n            WHEN c.approved_amount IS NULL THEN NULL\n            ELSE c.approved_amount / NULLIF(c.claim_amount, 0) \n        END AS approval_ratio,\n        \n        CASE\n            WHEN c.approved_amount > p.coverage_limit THEN p.coverage_limit\n            ELSE c.approved_amount\n        END AS final_approved_amount,\n        \n        c.created_at,\n        c.updated_at\n    FROM stg_claim c\n    LEFT JOIN customer_dim cust ON c.customer_id = cust.customer_id\n    LEFT JOIN policy_fact p ON c.policy_id = p.policy_id\n)\n\nSELECT * FROM claim_fact"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_claim AS (\n    SELECT * FROM {{ ref('stg_claim') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\n-- Local reference to policy data\npolicy_fact AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\nclaim_fact AS (\n    SELECT\n        c.claim_id,\n        c.policy_id,\n        c.customer_id,\n        c.claim_date,\n        c.incident_date,\n        c.description,\n        c.claim_amount,\n        c.approved_amount,\n        c.status,\n        c.adjuster_id,\n        \n        -- Customer information\n        cust.first_name || ' ' || cust.last_name AS customer_name,\n        cust.email AS customer_email,\n        \n        -- Policy information\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        \n        -- Calculated fields\n        DATEDIFF('day', c.incident_date, c.claim_date) AS days_to_file_claim,\n        CASE \n            WHEN c.approved_amount IS NULL THEN NULL\n            ELSE c.approved_amount / NULLIF(c.claim_amount, 0) \n        END AS approval_ratio,\n        \n        CASE\n            WHEN c.approved_amount > p.coverage_limit THEN p.coverage_limit\n            ELSE c.approved_amount\n        END AS final_approved_amount,\n        \n        c.created_at,\n        c.updated_at\n    FROM stg_claim c\n    LEFT JOIN customer_dim cust ON c.customer_id = cust.customer_id\n    LEFT JOIN policy_fact p ON c.policy_id = p.policy_id\n)\n\nSELECT * FROM claim_fact",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/fct_claim.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.claims_project.fct_claim",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "claims_marts",
+          "name": "fct_claim",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "claims_project_stg_customer",
@@ -286,7 +331,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -374,7 +419,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_customer.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.stg_customer",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "claims_staging",
+          "name": "stg_customer",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "claims_project_dim_customer",
@@ -386,7 +455,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -488,7 +557,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/dim_customer.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.dim_customer",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "claims_marts",
+          "name": "dim_customer",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "claims_project_stg_policy",
@@ -500,14 +593,14 @@
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -581,7 +674,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        policy_id,\n        customer_id,\n        policy_type,\n        policy_number,\n        premium_amount,\n        coverage_limit,\n        deductible_amount,\n        effective_date,\n        expiration_date,\n        status,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_policies') }}\n)\n\nSELECT \n    policy_id,\n    customer_id,\n    policy_type,\n    policy_number,\n    premium_amount,\n    coverage_limit,\n    deductible_amount,\n    effective_date,\n    expiration_date,\n    status,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        policy_id,\n        customer_id,\n        policy_type,\n        policy_number,\n        premium_amount,\n        coverage_limit,\n        deductible_amount,\n        effective_date,\n        expiration_date,\n        status,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_policies') }}\n)\n\nSELECT \n    policy_id,\n    customer_id,\n    policy_type,\n    policy_number,\n    premium_amount,\n    coverage_limit,\n    deductible_amount,\n    effective_date,\n    expiration_date,\n    status,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_policy.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.policy_project.stg_policy",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "claims_staging",
+          "name": "stg_policy",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "claims_project_fct_policy",
@@ -593,14 +710,14 @@
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -709,7 +826,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_policy AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\npolicy_fact AS (\n    SELECT\n        p.policy_id,\n        p.customer_id,\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        p.effective_date,\n        p.expiration_date,\n        p.status,\n        c.first_name || ' ' || c.last_name AS customer_name,\n        c.email AS customer_email,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, c.date_of_birth)) AS customer_age,\n        DATEDIFF('day', p.effective_date, p.expiration_date) AS policy_duration_days,\n        CASE \n            WHEN p.status = 'active' AND CURRENT_DATE > p.expiration_date THEN 'expired'\n            ELSE p.status\n        END AS current_status,\n        p.created_at,\n        p.updated_at\n    FROM stg_policy p\n    LEFT JOIN customer_dim c ON p.customer_id = c.customer_id\n)\n\nSELECT * FROM policy_fact"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_policy AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\npolicy_fact AS (\n    SELECT\n        p.policy_id,\n        p.customer_id,\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        p.effective_date,\n        p.expiration_date,\n        p.status,\n        c.first_name || ' ' || c.last_name AS customer_name,\n        c.email AS customer_email,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, c.date_of_birth)) AS customer_age,\n        DATEDIFF('day', p.effective_date, p.expiration_date) AS policy_duration_days,\n        CASE \n            WHEN p.status = 'active' AND CURRENT_DATE > p.expiration_date THEN 'expired'\n            ELSE p.status\n        END AS current_status,\n        p.created_at,\n        p.updated_at\n    FROM stg_policy p\n    LEFT JOIN customer_dim c ON p.customer_id = c.customer_id\n)\n\nSELECT * FROM policy_fact",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/fct_policy.sql",
+      "database": "insurance_claims",
+      "catalog_metadata": {
+        "unique_id": "model.policy_project.fct_policy",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "claims_marts",
+          "name": "fct_policy",
+          "database": "insurance_claims",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "customer_project_stg_customer",
@@ -721,7 +862,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -809,7 +950,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_customer.sql",
+      "database": "insurance_customers",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.stg_customer",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "customer_staging",
+          "name": "stg_customer",
+          "database": "insurance_customers",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "customer_project_dim_customer",
@@ -821,7 +986,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -923,7 +1088,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/dim_customer.sql",
+      "database": "insurance_customers",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.dim_customer",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "customer_marts",
+          "name": "dim_customer",
+          "database": "insurance_customers",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "policy_project_stg_policy",
@@ -935,14 +1124,14 @@
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -1016,7 +1205,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        policy_id,\n        customer_id,\n        policy_type,\n        policy_number,\n        premium_amount,\n        coverage_limit,\n        deductible_amount,\n        effective_date,\n        expiration_date,\n        status,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_policies') }}\n)\n\nSELECT \n    policy_id,\n    customer_id,\n    policy_type,\n    policy_number,\n    premium_amount,\n    coverage_limit,\n    deductible_amount,\n    effective_date,\n    expiration_date,\n    status,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        policy_id,\n        customer_id,\n        policy_type,\n        policy_number,\n        premium_amount,\n        coverage_limit,\n        deductible_amount,\n        effective_date,\n        expiration_date,\n        status,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_policies') }}\n)\n\nSELECT \n    policy_id,\n    customer_id,\n    policy_type,\n    policy_number,\n    premium_amount,\n    coverage_limit,\n    deductible_amount,\n    effective_date,\n    expiration_date,\n    status,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_policy.sql",
+      "database": "insurance_policies",
+      "catalog_metadata": {
+        "unique_id": "model.policy_project.stg_policy",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "policy_staging",
+          "name": "stg_policy",
+          "database": "insurance_policies",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "policy_project_fct_policy",
@@ -1028,14 +1241,14 @@
           "name": "policy_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -1144,7 +1357,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_policy AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\npolicy_fact AS (\n    SELECT\n        p.policy_id,\n        p.customer_id,\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        p.effective_date,\n        p.expiration_date,\n        p.status,\n        c.first_name || ' ' || c.last_name AS customer_name,\n        c.email AS customer_email,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, c.date_of_birth)) AS customer_age,\n        DATEDIFF('day', p.effective_date, p.expiration_date) AS policy_duration_days,\n        CASE \n            WHEN p.status = 'active' AND CURRENT_DATE > p.expiration_date THEN 'expired'\n            ELSE p.status\n        END AS current_status,\n        p.created_at,\n        p.updated_at\n    FROM stg_policy p\n    LEFT JOIN customer_dim c ON p.customer_id = c.customer_id\n)\n\nSELECT * FROM policy_fact"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_policy AS (\n    SELECT * FROM {{ ref('stg_policy') }}\n),\n\n-- Local reference to customer data\ncustomer_dim AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\npolicy_fact AS (\n    SELECT\n        p.policy_id,\n        p.customer_id,\n        p.policy_type,\n        p.policy_number,\n        p.premium_amount,\n        p.coverage_limit,\n        p.deductible_amount,\n        p.effective_date,\n        p.expiration_date,\n        p.status,\n        c.first_name || ' ' || c.last_name AS customer_name,\n        c.email AS customer_email,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, c.date_of_birth)) AS customer_age,\n        DATEDIFF('day', p.effective_date, p.expiration_date) AS policy_duration_days,\n        CASE \n            WHEN p.status = 'active' AND CURRENT_DATE > p.expiration_date THEN 'expired'\n            ELSE p.status\n        END AS current_status,\n        p.created_at,\n        p.updated_at\n    FROM stg_policy p\n    LEFT JOIN customer_dim c ON p.customer_id = c.customer_id\n)\n\nSELECT * FROM policy_fact",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/fct_policy.sql",
+      "database": "insurance_policies",
+      "catalog_metadata": {
+        "unique_id": "model.policy_project.fct_policy",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "policy_marts",
+          "name": "fct_policy",
+          "database": "insurance_policies",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "policy_project_stg_customer",
@@ -1156,7 +1393,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -1244,7 +1481,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data"
+      "sql": "{{\n  config(\n    materialized = 'view',\n    schema = 'staging'\n  )\n}}\n\nWITH source_data AS (\n    SELECT \n        customer_id,\n        first_name,\n        last_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        created_at,\n        updated_at\n    FROM {{ ref('raw_customers') }}\n)\n\nSELECT \n    customer_id,\n    first_name,\n    last_name,\n    email,\n    phone_number,\n    address,\n    city,\n    state,\n    zip_code,\n    date_of_birth,\n    gender,\n    created_at,\n    updated_at\nFROM source_data",
+      "materialized": "view",
+      "schema": "staging",
+      "file_path": "models/staging/stg_customer.sql",
+      "database": "insurance_policies",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.stg_customer",
+        "metadata": {
+          "type": "VIEW",
+          "schema": "policy_staging",
+          "name": "stg_customer",
+          "database": "insurance_policies",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     },
     {
       "id": "policy_project_dim_customer",
@@ -1256,7 +1517,7 @@
           "name": "customer_id",
           "type": "INTEGER",
           "description": "",
-          "isPrimaryKey": false,
+          "isPrimaryKey": true,
           "isForeignKey": true
         },
         {
@@ -1358,7 +1619,31 @@
           "isForeignKey": false
         }
       ],
-      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim"
+      "sql": "{{\n  config(\n    materialized = 'table',\n    schema = 'marts'\n  )\n}}\n\nWITH stg_customer AS (\n    SELECT * FROM {{ ref('stg_customer') }}\n),\n\ncustomer_dim AS (\n    SELECT\n        customer_id,\n        first_name,\n        last_name,\n        CONCAT(first_name, ' ', last_name) AS full_name,\n        email,\n        phone_number,\n        address,\n        city,\n        state,\n        zip_code,\n        date_of_birth,\n        gender,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age,\n        created_at,\n        updated_at\n    FROM stg_customer\n)\n\nSELECT * FROM customer_dim",
+      "materialized": "table",
+      "schema": "marts",
+      "file_path": "models/marts/dim_customer.sql",
+      "database": "insurance_policies",
+      "catalog_metadata": {
+        "unique_id": "model.customer_project.dim_customer",
+        "metadata": {
+          "type": "BASE TABLE",
+          "schema": "policy_marts",
+          "name": "dim_customer",
+          "database": "insurance_policies",
+          "comment": null,
+          "owner": null
+        }
+      },
+      "stats": {
+        "has_stats": {
+          "id": "has_stats",
+          "label": "Has Stats?",
+          "value": false,
+          "include": false,
+          "description": "Indicates whether there are statistics for this table"
+        }
+      }
     }
   ],
   "lineage": [
@@ -1401,6 +1686,53 @@
     {
       "source": "policy_project_stg_customer",
       "target": "policy_project_dim_customer"
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "claims_project_stg_customer"
+    },
+    {
+      "source": "policy_project_stg_policy",
+      "target": "claims_project_stg_policy"
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "policy_project_stg_customer"
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "claims_project_fct_claim",
+      "cross_project": true
+    },
+    {
+      "source": "policy_project_stg_policy",
+      "target": "claims_project_fct_claim",
+      "cross_project": true
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "claims_project_fct_policy",
+      "cross_project": true
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "policy_project_fct_policy",
+      "cross_project": true
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "claims_project_dim_customer",
+      "cross_project": true
+    },
+    {
+      "source": "policy_project_stg_policy",
+      "target": "claims_project_fct_policy",
+      "cross_project": true
+    },
+    {
+      "source": "customer_project_stg_customer",
+      "target": "policy_project_dim_customer",
+      "cross_project": true
     }
   ]
 }
