@@ -33,7 +33,7 @@ yarn-error.log
 *.sqlite
 
 # DBT
-target/
+
 dbt_packages/
 logs/
 .user.yml

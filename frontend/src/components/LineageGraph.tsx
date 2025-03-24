@@ -42,29 +42,59 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
 
   // Create deduplicated models based on model name AND project
   const { deduplicatedModels, modelMap, deduplicatedLineage } = useMemo(() => {
-    // First, let's create a map to group models by name AND project
-    const modelsByNameAndProject: Record<string, Model[]> = {};
+    // First, identify fact tables (models that start with "fct_")
+    // These are likely to be cross-referenced between projects
+    const factModels = new Map<string, Model[]>();
+    const nonFactModels = new Map<string, Model[]>();
     
-    // Group models by name and project
+    // Separate fact models from other models
     models.forEach(model => {
-      if (!model.name || !model.project) return;
+      if (!model.name) return;
       
-      const key = `${model.name}_${model.project}`;
-      if (!modelsByNameAndProject[key]) {
-        modelsByNameAndProject[key] = [];
+      // Check if this is a fact model (starts with fct_)
+      const isFact = model.name.startsWith('fct_');
+      const key = isFact ? model.name : `${model.name}_${model.project}`;
+      
+      const targetMap = isFact ? factModels : nonFactModels;
+      
+      if (!targetMap.has(key)) {
+        targetMap.set(key, []);
       }
-      modelsByNameAndProject[key].push(model);
+      
+      targetMap.get(key)?.push(model);
     });
-
+    
     // Create deduplicated models list
     const dedupedModels: Model[] = [];
     const modelIdMap: Record<string, string> = {}; // Maps original IDs to new IDs
+    let dedupeIndex = 0;
     
-    // For each unique model name & project combo, create one consolidated model
-    Object.entries(modelsByNameAndProject).forEach(([key, modelsWithNameAndProject], index) => {
-      // Create a consolidated model from the first model with this name and project
+    // Process fact models - deduplicate by name only (ignoring project)
+    factModels.forEach((modelsWithSameName, factName) => {
+      const deduplicatedId = `dedupe_${dedupeIndex++}`;
+      const baseModel = modelsWithSameName[0];
+      
+      const consolidatedModel: Model = {
+        ...baseModel,
+        id: deduplicatedId,
+        // Store original models for reference
+        originalModels: modelsWithSameName
+      };
+      
+      dedupedModels.push(consolidatedModel);
+      
+      // Map all original fact model IDs to the new consolidated ID
+      modelsWithSameName.forEach(model => {
+        if (model.id) {
+          modelIdMap[model.id] = deduplicatedId;
+        }
+      });
+    });
+    
+    // Process non-fact models - deduplicate by name AND project
+    nonFactModels.forEach((modelsWithNameAndProject, key) => {
+      const deduplicatedId = `dedupe_${dedupeIndex++}`;
       const baseModel = modelsWithNameAndProject[0];
-      const deduplicatedId = `dedupe_${index}`;
       
       const consolidatedModel: Model = {
         ...baseModel,
@@ -75,7 +105,7 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       dedupedModels.push(consolidatedModel);
       
-      // Map all original IDs to the new consolidated ID
+      // Map all original model IDs to the new consolidated ID
       modelsWithNameAndProject.forEach(model => {
         if (model.id) {
           modelIdMap[model.id] = deduplicatedId;
@@ -370,9 +400,6 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
         height: 15,
         color: '#aaa',
       },
-      label: 'references',
-      labelStyle: { fill: '#888', fontSize: 12 },
-      labelBgStyle: { fill: 'rgba(255, 255, 255, 0.7)' },
     }));
     
     setEdges(flowEdges);
