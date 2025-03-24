@@ -40,46 +40,43 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Create deduplicated models based on model name
+  // Create deduplicated models based on model name AND project
   const { deduplicatedModels, modelMap, deduplicatedLineage } = useMemo(() => {
-    // First, let's create a map to group models by name
-    const modelsByName: Record<string, Model[]> = {};
+    // First, let's create a map to group models by name AND project
+    const modelsByNameAndProject: Record<string, Model[]> = {};
     
-    // Group models by name
+    // Group models by name and project
     models.forEach(model => {
-      if (!model.name) return;
+      if (!model.name || !model.project) return;
       
-      if (!modelsByName[model.name]) {
-        modelsByName[model.name] = [];
+      const key = `${model.name}_${model.project}`;
+      if (!modelsByNameAndProject[key]) {
+        modelsByNameAndProject[key] = [];
       }
-      modelsByName[model.name].push(model);
+      modelsByNameAndProject[key].push(model);
     });
 
     // Create deduplicated models list
     const dedupedModels: Model[] = [];
     const modelIdMap: Record<string, string> = {}; // Maps original IDs to new IDs
     
-    // For each unique model name, create one consolidated model
-    Object.entries(modelsByName).forEach(([name, modelsWithName], index) => {
-      // Create a consolidated model from the first model with this name
-      const baseModel = modelsWithName[0];
+    // For each unique model name & project combo, create one consolidated model
+    Object.entries(modelsByNameAndProject).forEach(([key, modelsWithNameAndProject], index) => {
+      // Create a consolidated model from the first model with this name and project
+      const baseModel = modelsWithNameAndProject[0];
       const deduplicatedId = `dedupe_${index}`;
-      
-      // Create consolidated model with all projects listed
-      const projects = [...new Set(modelsWithName.map(m => m.project))].join(', ');
       
       const consolidatedModel: Model = {
         ...baseModel,
         id: deduplicatedId,
-        project: projects,
         // Store original models for reference
-        originalModels: modelsWithName
+        originalModels: modelsWithNameAndProject
       };
       
       dedupedModels.push(consolidatedModel);
       
       // Map all original IDs to the new consolidated ID
-      modelsWithName.forEach(model => {
+      modelsWithNameAndProject.forEach(model => {
         if (model.id) {
           modelIdMap[model.id] = deduplicatedId;
         }
