@@ -380,10 +380,30 @@ class MetadataService:
             models = [m for m in models if m["project"] == project_id]
         
         # Filter by search term if specified
-        if search:
-            search = search.lower()
-            models = [m for m in models if search in m["name"].lower() or 
-                     (m.get("description") and search in m["description"].lower())]
+        if search and search.strip():  # Ensure search is not empty or just whitespace
+            search = search.lower().strip()
+            print(f"Searching for exact match on model name: '{search}'")
+            
+            # Track matching models for debug logging
+            name_matches = []
+            desc_matches = []
+            
+            # Use exact matching for names, but still allow partial matching in descriptions
+            filtered_models = []
+            for model in models:
+                model_name = model["name"].lower()
+                if model_name == search:
+                    name_matches.append(model["name"])
+                    filtered_models.append(model)
+                elif model.get("description") and search in model.get("description", "").lower():
+                    desc_matches.append(model["name"])
+                    filtered_models.append(model)
+            
+            # Debug logging
+            print(f"Models matching by name ({len(name_matches)}): {', '.join(name_matches)}")
+            print(f"Models matching by description ({len(desc_matches)}): {', '.join(desc_matches)}")
+            
+            models = filtered_models
         
         print(f"Returning {len(models)} models" + 
               (f" for project {project_id}" if project_id else "") +

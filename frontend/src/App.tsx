@@ -38,6 +38,7 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
     tag?: string;
     materialized?: string;
   }>({});
+  const [isFiltering, setIsFiltering] = useState<boolean>(false);
 
   // Create a memoized version of applyFilters to avoid dependency issues
   const applyFilters = useCallback((filters: any) => {
@@ -51,10 +52,13 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
     }
     
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
+      const searchLower = filters.search.toLowerCase().trim();
+      // Update to search for partial matches instead of exact matches
       results = results.filter(model => 
-        model.name.toLowerCase().includes(searchLower) || 
-        (model.description && model.description.toLowerCase().includes(searchLower)));
+        model.name.toLowerCase().includes(searchLower));
+      
+      // Log matches for debugging
+      console.log(`Matches for "${searchLower}":`, results.map(m => m.name));
     }
     
     if (filters.tag) {
@@ -72,44 +76,76 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
 
   // Update filtered models when models prop changes or when filters change
   useEffect(() => {
-    // Only reset filtered models if we don't have active filters
+    // Set loading state
+    setLoading(true);
+    
+    // Helpful log to see when filtering is being applied
+    console.log('Applying filters with:', {
+      hasFilters: Object.keys(searchFilters).length > 0,
+      modelCount: models.length,
+      searchTerm: searchFilters.search || 'none'
+    });
+    
+    // Apply current filters or show all models
     if (
       Object.keys(searchFilters).length === 0 || 
       (!searchFilters.projectId && !searchFilters.search && !searchFilters.tag && !searchFilters.materialized)
     ) {
       setFilteredModels(models);
+      setIsFiltering(false);
     } else {
       // Re-apply existing filters when models data changes
       const updated = applyFilters(searchFilters);
       setFilteredModels(updated);
+      setIsFiltering(true);
     }
+    
+    // Reset loading state after a small delay to ensure UI updates
+    setTimeout(() => {
+      setLoading(false);
+    }, 100);
   }, [models, searchFilters, applyFilters]);
 
   // Handle search/filter changes
   const handleSearch = async (filters: any) => {
+    console.log('Search filters applied:', filters);
     setLoading(true);
     
     try {
-      // Apply filters locally first for immediate feedback
-      const localResults = applyFilters(filters);
-      setFilteredModels(localResults);
+      // Check if we have any actual filters
+      const hasFilters = 
+        filters.projectId || 
+        (filters.search && filters.search.trim()) || 
+        filters.tag || 
+        filters.materialized;
       
-      // If searching with text and no local results, try the API
-      if (filters.search && localResults.length === 0) {
-        const apiResults = await getModels(
-          filters.projectId,
-          filters.search,
-          filters.tag,
-          filters.materialized
-        );
-        setFilteredModels(apiResults);
+      if (!hasFilters) {
+        // No filters, so show all models
+        console.log('No filters, showing all models:', models.length);
+        setFilteredModels(models);
+        setIsFiltering(false);
+      } else {
+        // Apply filters locally
+        const localResults = applyFilters(filters);
+        console.log('Filtered models:', localResults.length, 'of', models.length, 'total models');
+        
+        // Log the model names for debugging
+        if (filters.search) {
+          console.log('Models matching search term:', localResults.map(m => m.name).join(', '));
+        }
+        
+        // Update state
+        setFilteredModels(localResults);
+        setIsFiltering(true);
       }
       
+      // Set search filters after updating filteredModels to ensure UI reflects changes
       setSearchFilters(filters);
     } catch (error) {
-      console.error('Error searching models:', error);
-      // Fall back to local filtering on error
-      setFilteredModels(applyFilters(filters));
+      console.error('Error applying filters:', error);
+      // Reset to showing all models on error
+      setFilteredModels(models);
+      setIsFiltering(false);
     } finally {
       setLoading(false);
     }
@@ -169,7 +205,7 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
           {text}
         </Tag>
       ),
-      filters: projects.map(p => ({ text: p.name, value: p.name })),
+      filters: isFiltering ? [] : projects.map(p => ({ text: p.name, value: p.name })),
       onFilter: (value: any, record: Model) => record.project === value,
     },
     {
@@ -202,7 +238,7 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
           {text || 'N/A'}
         </Tag>
       ),
-      filters: [
+      filters: isFiltering ? [] : [
         { text: 'View', value: 'view' },
         { text: 'Table', value: 'table' },
         { text: 'Incremental', value: 'incremental' },
@@ -212,12 +248,22 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
     },
   ];
 
-  return (
-    <div className="models-section">
-      <h2>Models</h2>
-      
-      <AdvancedSearch onSearch={handleSearch} initialFilters={searchFilters} />
-      
+  // Render function for the table section
+  const renderTableSection = () => {
+    if (isFiltering && filteredModels.length === 0) {
+      return (
+        <div className="search-no-results">
+          <Alert
+            message="No models found"
+            description={`No models match your search criteria "${searchFilters.search || ''}". Try a different search term.`}
+            type="warning"
+            showIcon
+          />
+        </div>
+      );
+    }
+
+    return (
       <Table 
         dataSource={filteredModels} 
         columns={columns}
@@ -227,9 +273,21 @@ const ModelsTable: React.FC<ModelsTableProps> = ({ models, projects, lineage }) 
           pageSize: 15, 
           showSizeChanger: true, 
           pageSizeOptions: ['10', '15', '30', '50'],
-          showTotal: (total) => `Total ${total} models`
+          showTotal: (total) => `Total ${total} models` 
         }}
+        key={`model-table-${filteredModels.length}-${isFiltering}`}
+        id={isFiltering ? 'filtered-models-table' : 'all-models-table'}
       />
+    );
+  };
+
+  return (
+    <div className="models-section">
+      <h2>Models</h2>
+      
+      <AdvancedSearch onSearch={handleSearch} initialFilters={searchFilters} />
+      
+      {renderTableSection()}
     </div>
   );
 };

@@ -1012,4 +1012,22 @@ th {
 .cross-project-header .ant-typography {
   margin-left: 8px;
   font-size: 12px;
+}
+
+/* Add these styles for the search prompt and no results alerts */
+.search-prompt, .search-no-results {
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 6px;
+  background: #f9f9f9;
+}
+
+.search-prompt .ant-alert, .search-no-results .ant-alert {
+  border: none;
+  background: transparent;
+}
+
+/* Add some margin to the search component */
+.advanced-search {
+  margin-bottom: 20px;
 } 

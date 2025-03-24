@@ -65,7 +65,12 @@ export const getModels = async (
   }
   
   if (search) {
-    params.search = search;
+    // Ensure search is trimmed and non-empty
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      params.search = trimmedSearch;
+      console.log('API search param:', trimmedSearch);
+    }
   }
   
   if (tag) {
@@ -76,7 +81,9 @@ export const getModels = async (
     params.materialized = materialized;
   }
   
+  console.log('Calling API with params:', params);
   const response = await api.get(url, { params });
+  console.log(`API returned ${response.data.length} models`);
   return response.data;
 };
 

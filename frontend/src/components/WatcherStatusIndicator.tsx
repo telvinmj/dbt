@@ -16,6 +16,7 @@ interface WatcherStatus {
 const WatcherStatusIndicator: React.FC = () => {
   const [status, setStatus] = useState<WatcherStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState<boolean>(false);
   
   const fetchStatus = async () => {
     try {
@@ -27,12 +28,36 @@ const WatcherStatusIndicator: React.FC = () => {
   };
   
   useEffect(() => {
+    // Initial fetch of status
     fetchStatus();
+    
+    // Set auto-refresh to off by default
+    const ensureWatcherOff = async () => {
+      try {
+        const currentStatus = await getWatcherStatus();
+        
+        // If watcher is active and we haven't initialized it yet, turn it off
+        if (currentStatus.active && !initialized) {
+          console.log('Setting auto-refresh to OFF by default');
+          await toggleWatcher(false);
+          await fetchStatus(); // Refresh status after toggling
+          setInitialized(true);
+        } else if (!currentStatus.active && !initialized) {
+          // Watcher is already off, just mark as initialized
+          console.log('Auto-refresh is already OFF');
+          setInitialized(true);
+        }
+      } catch (error) {
+        console.error('Error setting watcher to off:', error);
+      }
+    };
+    
+    ensureWatcherOff();
     
     // Poll for updates every 10 seconds
     const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [initialized]);
   
   const handleToggle = async (checked: boolean) => {
     setLoading(true);
@@ -65,7 +90,17 @@ const WatcherStatusIndicator: React.FC = () => {
         />
       );
     }
-    return <Badge status="default" text="Auto-refresh off" />;
+    return (
+      <Badge 
+        status="default" 
+        text={
+          <Space>
+            <Text type="secondary">Auto-refresh off</Text>
+            <ClockCircleOutlined style={{ color: '#999999' }} />
+          </Space>
+        } 
+      />
+    );
   };
   
   const tooltipContent = () => (

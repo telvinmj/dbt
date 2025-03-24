@@ -40,11 +40,14 @@ file_watcher = FileWatcherService(
     watch_interval=30  # Check every 30 seconds
 )
 
-# Start file watcher on startup
+# Start file watcher on startup (disabled by default)
 @app.on_event("startup")
 async def startup_event():
-    file_watcher.start()
-    print("File watcher started for automatic metadata updates")
+    # Initialize the file watcher but don't start it automatically
+    # The user can enable it manually through the UI
+    print("Auto-refresh is OFF by default. Enable it from the UI if needed.")
+    # file_watcher.start()
+    # print("File watcher started for automatic metadata updates")
 
 # Stop file watcher on shutdown
 @app.on_event("shutdown")
@@ -73,6 +76,15 @@ async def get_project(project_id: str):
 @app.get("/api/models")
 async def get_models(project_id: str = None, search: str = None, tag: str = None, materialized: str = None):
     """Get all models, optionally filtered by project, search term, tag, or materialization type"""
+    # Log search parameters for debugging
+    print(f"API GET /api/models with params: project_id={project_id}, search='{search}', tag={tag}, materialized={materialized}")
+    
+    # Ensure search is properly handled
+    if search:
+        search = search.strip()
+        print(f"Performing exact name match search for: '{search}'")
+    
+    # Get models from service with exact name matching
     models = metadata_service.get_models(project_id, search)
     
     # Apply additional filters
@@ -91,6 +103,8 @@ async def get_models(project_id: str = None, search: str = None, tag: str = None
                     continue
                     
             filtered_models.append(model)
+        
+        print(f"After tag/materialized filtering: {len(filtered_models)} models remaining")
         models = filtered_models
     
     # Add default values for missing fields
@@ -109,6 +123,10 @@ async def get_models(project_id: str = None, search: str = None, tag: str = None
         for key, default_value in defaults.items():
             if key not in model or model[key] is None:
                 model[key] = default_value
+    
+    print(f"API returning {len(models)} models")
+    if search and len(models) > 0:
+        print(f"Returned model names: {', '.join(m['name'] for m in models)}")
     
     return models
 

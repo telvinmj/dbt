@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Input, Select, Button, Form, Card, Tag, Space } from 'antd';
+import { Input, Select, Button, Form, Card, Tag, Space, Tooltip } from 'antd';
 import { SearchOutlined, FilterOutlined, ClearOutlined } from '@ant-design/icons';
 import { getProjects } from '../services/api';
 import { Project } from '../types';
@@ -57,7 +57,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [initialFilters]);
+  }, [initialFilters, form]);
 
   const fetchProjects = async () => {
     try {
@@ -89,7 +89,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   };
 
   const handleQuickSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const search = e.target.value;
+    const search = e.target.value.trim();
     form.setFieldValue('search', search);
     
     // Only update activeFilters if search has content
@@ -109,14 +109,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Set a new timeout for the search (300ms debounce)
-    searchTimeoutRef.current = setTimeout(() => {
-      // Apply search filter after debounce
-      onSearch({
-        ...form.getFieldsValue(),
-        search
-      });
-    }, 300);
+    // Apply search filter immediately without debounce
+    console.log('Performing immediate search for models containing:', search);
+    
+    // Apply search filter immediately
+    onSearch({
+      ...form.getFieldsValue(),
+      search
+    });
   };
 
   const toggleExpand = () => {
@@ -173,12 +173,15 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         <Form form={form} layout="vertical" onFinish={handleSearch}>
           {/* Quick Search Input - Always Visible */}
           <Form.Item name="search" style={{ marginBottom: expandedSearch ? 24 : 0 }}>
-            <Input 
-              placeholder="Search models..." 
-              prefix={<SearchOutlined />}
-              onChange={handleQuickSearch}
-              allowClear
-            />
+            <Tooltip title="Search for models with names containing your search term">
+              <Input 
+                placeholder="Type model name to search..." 
+                prefix={<SearchOutlined />}
+                onChange={handleQuickSearch}
+                allowClear
+                addonAfter={<span style={{ fontSize: '11px', color: '#888' }}>Model Name</span>}
+              />
+            </Tooltip>
           </Form.Item>
 
           {/* Advanced Search Options - Expandable */}
