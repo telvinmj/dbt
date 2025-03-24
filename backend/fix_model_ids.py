@@ -16,19 +16,53 @@ def fix_model_ids():
     # Create new model IDs (project_id_model_name)
     print("Creating new model IDs...")
     new_models = []
+    
+    # First, identify models by name across projects
+    models_by_name = {}
+    for model in metadata.get("models", []):
+        name = model.get("name", "")
+        if name:
+            if name not in models_by_name:
+                models_by_name[name] = []
+            models_by_name[name].append(model)
+    
+    # Function to find the home project for a model
+    def find_home_project(model_name):
+        if model_name.startswith(("dim_", "fct_", "stg_")):
+            # Extract the entity name (e.g., "customer" from "dim_customer")
+            parts = model_name.split('_', 1)
+            if len(parts) > 1:
+                entity = parts[1]
+                # Find project that contains this entity name
+                for project_name in set(m.get("project") for m in metadata.get("models", []) if m.get("project")):
+                    if entity in project_name:
+                        return project_name
+        return None
+    
     for model in metadata.get("models", []):
         old_id = model["id"]
         project_id = model["project"]
         model_name = model["name"]
         
-        # Generate a new unique ID
+        # For dimension, fact, or staging models, use consistent project prefix
+        if model_name.startswith(("dim_", "fct_", "stg_")):
+            home_project = find_home_project(model_name)
+            if home_project:
+                # If this is a cross-project reference, use the home project for ID
+                if home_project != project_id:
+                    new_id = f"{home_project}_{model_name}"
+                    id_mapping[old_id] = new_id
+                    model["id"] = new_id
+                    model["cross_project_ref"] = True
+                    new_models.append(model)
+                    print(f"Cross-project mapped: {old_id} -> {new_id} (home: {home_project})")
+                    continue
+        
+        # Default case: use project_id_model_name
         new_id = f"{project_id}_{model_name}"
         id_mapping[old_id] = new_id
-        
-        # Update the model's ID
         model["id"] = new_id
         new_models.append(model)
-        
         print(f"Mapped: {old_id} -> {new_id}")
     
     # Update the metadata with the new models

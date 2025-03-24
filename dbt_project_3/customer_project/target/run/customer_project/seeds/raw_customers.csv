@@ -1,0 +1,11 @@
+
+    
+    
+    truncate table "insurance_customers"."customer_raw_insurance"."raw_customers";
+    -- dbt seed --
+    
+          COPY "insurance_customers"."customer_raw_insurance"."raw_customers" FROM '/Users/telvin/Desktop/dbt/dbt_project_3/customer_project/seeds/raw_customers.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')
+        
+
+;
+  

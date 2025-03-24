@@ -20,8 +20,8 @@ def find_explicit_references(dbt_project_dir):
     for sql_file in sql_files:
         # Determine which project this SQL file belongs to
         parts = sql_file.split('/')
-        project_idx = parts.index(next(p for p in parts if p.endswith('_project')))
-        source_project = parts[project_idx]
+            project_idx = parts.index(next(p for p in parts if p.endswith('_project')))
+            source_project = parts[project_idx]
         
         # Extract model name from file path
         model_name = os.path.basename(sql_file).replace('.sql', '')
@@ -33,11 +33,11 @@ def find_explicit_references(dbt_project_dir):
             matches = re.findall(ref_pattern, sql_content)
             for target_model, target_project in matches:
                 explicit_refs.append((
-                    source_project, 
-                    model_name,
-                    target_project,
+                        source_project, 
+                        model_name,
+                        target_project,
                     target_model
-                ))
+                    ))
                 print(f"Found explicit reference: {source_project}.{model_name} -> {target_project}.{target_model}")
     
     return explicit_refs
@@ -76,10 +76,10 @@ def fix_cross_project_lineage():
                 model_by_project_and_name[project_id] = {}
             model_lookup[project_id][model_name] = model_id
             model_by_project_and_name[project_id][model_name] = model
-    
+            
     # Find explicit cross-project references in SQL files
     explicit_refs = find_explicit_references(dbt_project_dir)
-    
+            
     # Add connections from explicit references
     cross_project_connections = []
     for source_project, source_model, target_project, target_model in explicit_refs:
@@ -89,30 +89,43 @@ def fix_cross_project_lineage():
             "target_project": source_project,
             "target_model": source_model,
             "explicit": True
-        })
-    
+            })
+            
     # Define additional cross-project connections if needed
     hard_coded_connections = [
         # claims_project stg_customer references customer_project stg_customer
         {"source_project": "customer_project", "source_model": "stg_customer", 
          "target_project": "claims_project", "target_model": "stg_customer"},
-        
+                    
         # claims_project stg_policy references policy_project stg_policy
         {"source_project": "policy_project", "source_model": "stg_policy", 
          "target_project": "claims_project", "target_model": "stg_policy"},
-        
+                        
         # policy_project stg_customer references customer_project stg_customer
         {"source_project": "customer_project", "source_model": "stg_customer", 
          "target_project": "policy_project", "target_model": "stg_customer"},
-    ]
+                            
+        # Add explicit dim_customer connections
+        # customer_project dim_customer references stg_customer
+        {"source_project": "customer_project", "source_model": "stg_customer", 
+         "target_project": "customer_project", "target_model": "dim_customer"},
+                                
+        # claims_project references customer_project dim_customer
+        {"source_project": "customer_project", "source_model": "dim_customer", 
+         "target_project": "claims_project", "target_model": "dim_customer"},
     
+        # policy_project references customer_project dim_customer
+        {"source_project": "customer_project", "source_model": "dim_customer", 
+         "target_project": "policy_project", "target_model": "dim_customer"},
+    ]
+        
     # Add the hard-coded connections that aren't already in the explicit list
     for conn in hard_coded_connections:
         source_project = conn["source_project"]
         source_model = conn["source_model"]
         target_project = conn["target_project"]
         target_model = conn["target_model"]
-        
+            
         # Check if this connection already exists in explicit refs
         exists = False
         for explicit_conn in cross_project_connections:
@@ -122,11 +135,11 @@ def fix_cross_project_lineage():
                 explicit_conn["target_model"] == target_model):
                 exists = True
                 break
-        
+            
         if not exists:
             conn["explicit"] = False
             cross_project_connections.append(conn)
-    
+                
     # Add these connections to the lineage data
     new_connections = []
     for conn in cross_project_connections:
@@ -135,7 +148,7 @@ def fix_cross_project_lineage():
         target_project = conn["target_project"]
         target_model = conn["target_model"]
         is_explicit = conn.get("explicit", False)
-        
+                
         # Skip if we can't find the models
         if (source_project not in model_lookup or 
             source_model not in model_lookup[source_project] or
@@ -143,7 +156,7 @@ def fix_cross_project_lineage():
             target_model not in model_lookup[target_project]):
             print(f"Skipping {source_model} ({source_project}) -> {target_model} ({target_project}): Models not found")
             continue
-        
+    
         source_id = model_lookup[source_project][source_model]
         target_id = model_lookup[target_project][target_model]
         

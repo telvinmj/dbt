@@ -1,0 +1,159 @@
+[0m15:54:57.635059 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1046634a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104b87ce0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104b87a10>]}
+
+
+============================== 15:54:57.639271 | 15fcef6f-3862-4ea2-9b7a-540324a5420e ==============================
+[0m15:54:57.639271 [info ] [MainThread]: Running with dbt=1.9.3
+[0m15:54:57.639626 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'warn_error': 'None', 'version_check': 'True', 'fail_fast': 'False', 'log_path': 'logs', 'profiles_dir': '/Users/telvin/.dbt', 'debug': 'False', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'introspect': 'True', 'log_format': 'default', 'static_parser': 'True', 'target_path': 'None', 'invocation_command': 'dbt init abc', 'send_anonymous_usage_stats': 'True'}
+[0m15:54:57.651589 [warn ] [MainThread]: [ConfigFolderDirectory]: Unable to parse logging event dictionary. Failed to parse dir field: expected string or bytes-like object, got 'PosixPath'.. Dictionary: {'dir': PosixPath('/Users/telvin/.dbt')}
+[0m15:54:57.651878 [info ] [MainThread]: Creating dbt configuration folder at 
+[0m15:54:57.652910 [debug] [MainThread]: Starter project path: /Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/include/starter_project
+[0m15:54:57.657150 [info ] [MainThread]: 
+Your new dbt project "abc" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m15:54:57.657344 [info ] [MainThread]: Setting up your profile.
+[0m15:54:57.657802 [error] [MainThread]: Encountered an error:
+Runtime Error
+  No adapters available. Learn how to install an adapter by going to https://docs.getdbt.com/docs/connect-adapters#install-using-the-cli
+[0m15:54:58.056804 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": false, "command_wall_clock_time": 0.46771738, "process_in_blocks": "0", "process_kernel_time": 0.115328, "process_mem_max_rss": "99549184", "process_out_blocks": "0", "process_user_time": 0.734986}
+[0m15:54:58.057945 [debug] [MainThread]: Command `dbt init` failed at 15:54:58.057769 after 0.47 seconds
+[0m15:54:58.058594 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x100f22e10>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1046634a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104701640>]}
+[0m15:54:58.059202 [debug] [MainThread]: Flushing usage events
+[0m15:54:59.950250 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m16:35:29.477636 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x106974e90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x108b03c50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x108b03860>]}
+
+
+============================== 16:35:29.482999 | 1c305ad1-fd52-461b-a311-e6c7e69d26d5 ==============================
+[0m16:35:29.482999 [info ] [MainThread]: Running with dbt=1.9.3
+[0m16:35:29.483546 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/Users/telvin/.dbt', 'fail_fast': 'False', 'version_check': 'True', 'log_path': 'logs', 'debug': 'False', 'warn_error': 'None', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'None', 'quiet': 'False', 'no_print': 'None', 'log_format': 'default', 'static_parser': 'True', 'invocation_command': 'dbt init retail_ops', 'introspect': 'True', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'send_anonymous_usage_stats': 'True'}
+[0m16:35:29.499875 [debug] [MainThread]: Starter project path: /Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/include/starter_project
+[0m16:35:29.505528 [info ] [MainThread]: 
+Your new dbt project "retail_ops" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m16:35:29.505911 [info ] [MainThread]: Setting up your profile.
+[0m16:35:47.495129 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 18.07995, "process_in_blocks": "0", "process_kernel_time": 0.228629, "process_mem_max_rss": "104873984", "process_out_blocks": "0", "process_user_time": 1.206417}
+[0m16:35:47.495618 [debug] [MainThread]: Command `dbt init` succeeded at 16:35:47.495530 after 18.08 seconds
+[0m16:35:47.495961 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x107fd98b0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104f21d60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x108b70320>]}
+[0m16:35:47.496297 [debug] [MainThread]: Flushing usage events
+[0m16:35:52.254459 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m16:35:53.893550 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1045e6c30>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x106579520>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x106579970>]}
+
+
+============================== 16:35:53.898645 | 68e12ae1-1126-431d-bba0-398c458ed9c0 ==============================
+[0m16:35:53.898645 [info ] [MainThread]: Running with dbt=1.9.3
+[0m16:35:53.899184 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/Users/telvin/.dbt', 'fail_fast': 'False', 'version_check': 'True', 'log_path': 'logs', 'warn_error': 'None', 'debug': 'False', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'introspect': 'True', 'static_parser': 'True', 'log_format': 'default', 'target_path': 'None', 'invocation_command': 'dbt init customer_360', 'send_anonymous_usage_stats': 'True'}
+[0m16:35:53.913907 [debug] [MainThread]: Starter project path: /Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/include/starter_project
+[0m16:35:53.919404 [info ] [MainThread]: 
+Your new dbt project "customer_360" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m16:35:53.919773 [info ] [MainThread]: Setting up your profile.
+[0m16:35:57.328555 [error] [MainThread]: Encountered an error:
+list index out of range
+[0m16:35:57.334476 [error] [MainThread]: Traceback (most recent call last):
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/cli/requires.py", line 153, in wrapper
+    result, success = func(*args, **kwargs)
+                      ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/cli/requires.py", line 103, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/cli/main.py", line 477, in init
+    results = task.run()
+              ^^^^^^^^^^
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/task/init.py", line 346, in run
+    self.setup_profile(profile_name)
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/task/init.py", line 261, in setup_profile
+    adapter = self.ask_for_adapter_choice()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/task/init.py", line 243, in ask_for_adapter_choice
+    return available_adapters[numeric_choice - 1]
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+IndexError: list index out of range
+
+[0m16:35:57.337649 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": false, "command_wall_clock_time": 3.4979236, "process_in_blocks": "0", "process_kernel_time": 0.147256, "process_mem_max_rss": "99401728", "process_out_blocks": "0", "process_user_time": 1.136079}
+[0m16:35:57.338623 [debug] [MainThread]: Command `dbt init` failed at 16:35:57.338425 after 3.50 seconds
+[0m16:35:57.339319 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x107938e30>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x106de7e60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x107d3d430>]}
+[0m16:35:57.339992 [debug] [MainThread]: Flushing usage events
+[0m16:35:58.377957 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m16:35:59.753114 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10683cb00>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x11939fce0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x11939fa40>]}
+
+
+============================== 16:35:59.757618 | b5f891c7-df2d-4e24-968f-25d9e681b7bf ==============================
+[0m16:35:59.757618 [info ] [MainThread]: Running with dbt=1.9.3
+[0m16:35:59.758183 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/Users/telvin/.dbt', 'debug': 'False', 'warn_error': 'None', 'log_path': 'logs', 'version_check': 'True', 'fail_fast': 'False', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'None', 'quiet': 'False', 'no_print': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'invocation_command': 'dbt init finance_metrics', 'introspect': 'True', 'static_parser': 'True', 'target_path': 'None', 'log_format': 'default', 'send_anonymous_usage_stats': 'True'}
+[0m16:35:59.765687 [debug] [MainThread]: Starter project path: /Users/telvin/miniforge3/lib/python3.12/site-packages/dbt/include/starter_project
+[0m16:35:59.770810 [info ] [MainThread]: 
+Your new dbt project "finance_metrics" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m16:35:59.771203 [info ] [MainThread]: Setting up your profile.
+[0m16:36:00.929371 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 1.2279333, "process_in_blocks": "0", "process_kernel_time": 0.136988, "process_mem_max_rss": "106561536", "process_out_blocks": "0", "process_user_time": 1.176901}
+[0m16:36:00.929874 [debug] [MainThread]: Command `dbt init` succeeded at 16:36:00.929782 after 1.23 seconds
+[0m16:36:00.930205 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x119487b60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x119487170>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x118b36600>]}
+[0m16:36:00.930544 [debug] [MainThread]: Flushing usage events
+[0m16:36:02.500085 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m17:21:28.525958 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1058e5e80>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x105171940>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x105171850>]}
+
+
+============================== 17:21:28.531989 | f4cc1b63-5b97-46d0-a04a-35ae96805226 ==============================
+[0m17:21:28.531989 [info ] [MainThread]: Running with dbt=1.9.3
+[0m17:21:28.532550 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'warn_error': 'None', 'fail_fast': 'False', 'debug': 'False', 'log_path': 'logs', 'profiles_dir': '/Users/telvin/.dbt', 'version_check': 'True', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'None', 'quiet': 'False', 'no_print': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'invocation_command': 'dbt seed', 'log_format': 'default', 'static_parser': 'True', 'target_path': 'None', 'introspect': 'True', 'send_anonymous_usage_stats': 'True'}
+[0m17:21:28.533061 [error] [MainThread]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path /Users/telvin/Desktop/dbt/dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m17:21:28.534835 [debug] [MainThread]: Resource report: {"command_name": "seed", "command_success": false, "command_wall_clock_time": 0.06378446, "process_in_blocks": "0", "process_kernel_time": 0.174916, "process_mem_max_rss": "98254848", "process_out_blocks": "0", "process_user_time": 1.127915}
+[0m17:21:28.535293 [debug] [MainThread]: Command `dbt seed` failed at 17:21:28.535202 after 0.06 seconds
+[0m17:21:28.535632 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x100eaad80>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x105c9d160>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x105348770>]}
+[0m17:21:28.535941 [debug] [MainThread]: Flushing usage events
+[0m17:21:29.761477 [debug] [MainThread]: An error was encountered while trying to flush usage events

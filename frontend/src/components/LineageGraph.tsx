@@ -42,20 +42,20 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
 
   // Create deduplicated models based on model name AND project
   const { deduplicatedModels, modelMap, deduplicatedLineage } = useMemo(() => {
-    // First, identify fact tables (models that start with "fct_")
-    // These are likely to be cross-referenced between projects
-    const factModels = new Map<string, Model[]>();
-    const nonFactModels = new Map<string, Model[]>();
+    // First, identify reference tables (models that should be deduplicated across projects)
+    // These include fact tables (fct_), staging models (stg_) and dimension models (dim_)
+    const crossProjectModels = new Map<string, Model[]>();
+    const projectSpecificModels = new Map<string, Model[]>();
     
-    // Separate fact models from other models
+    // Separate models that should be deduplicated across projects from project-specific models
     models.forEach(model => {
       if (!model.name) return;
       
-      // Check if this is a fact model (starts with fct_)
-      const isFact = model.name.startsWith('fct_');
-      const key = isFact ? model.name : `${model.name}_${model.project}`;
+      // Check if this is a cross-project model (starts with fct_, stg_, or dim_)
+      const isCrossProject = model.name.startsWith('fct_') || model.name.startsWith('stg_') || model.name.startsWith('dim_');
+      const key = isCrossProject ? model.name : `${model.name}_${model.project}`;
       
-      const targetMap = isFact ? factModels : nonFactModels;
+      const targetMap = isCrossProject ? crossProjectModels : projectSpecificModels;
       
       if (!targetMap.has(key)) {
         targetMap.set(key, []);
@@ -69,10 +69,23 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
     const modelIdMap: Record<string, string> = {}; // Maps original IDs to new IDs
     let dedupeIndex = 0;
     
-    // Process fact models - deduplicate by name only (ignoring project)
-    factModels.forEach((modelsWithSameName, factName) => {
+    // Process cross-project models - deduplicate by name only (ignoring project)
+    // For models that appear in multiple projects, prefer the "home" project version
+    crossProjectModels.forEach((modelsWithSameName, modelName) => {
       const deduplicatedId = `dedupe_${dedupeIndex++}`;
-      const baseModel = modelsWithSameName[0];
+      
+      // Try to find the "home" project version - the model with the same project
+      // as is indicated in the model name (e.g., stg_customer in customer_project)
+      const modelNameParts = modelName.split('_');
+      const entityName = modelNameParts.length > 1 ? modelNameParts[1] : '';
+      
+      // Find the model from the project that "owns" this entity, if it exists
+      const homeProject = modelsWithSameName.find(model => 
+        model.project && model.project.includes(entityName)
+      );
+      
+      // Use the home project model if found, otherwise use the first one
+      const baseModel = homeProject || modelsWithSameName[0];
       
       const consolidatedModel: Model = {
         ...baseModel,
@@ -83,7 +96,7 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       dedupedModels.push(consolidatedModel);
       
-      // Map all original fact model IDs to the new consolidated ID
+      // Map all original model IDs to the new consolidated ID
       modelsWithSameName.forEach(model => {
         if (model.id) {
           modelIdMap[model.id] = deduplicatedId;
@@ -91,8 +104,8 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       });
     });
     
-    // Process non-fact models - deduplicate by name AND project
-    nonFactModels.forEach((modelsWithNameAndProject, key) => {
+    // Process project-specific models - deduplicate by name AND project
+    projectSpecificModels.forEach((modelsWithNameAndProject, key) => {
       const deduplicatedId = `dedupe_${dedupeIndex++}`;
       const baseModel = modelsWithNameAndProject[0];
       

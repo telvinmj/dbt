@@ -739,3 +739,109 @@ class MetadataService:
             import traceback
             traceback.print_exc()
             return False
+
+    def process_cross_project_references(self, models, lineage):
+        """
+        Process cross-project references to ensure proper visualization.
+        This includes handling dimension models like dim_customer.
+        """
+        # Create lookup dictionaries
+        model_by_id = {model['id']: model for model in models}
+        model_by_name_and_project = {}
+        model_by_name = {}
+        
+        # Map models by name and project
+        for model in models:
+            name = model.get('name')
+            project = model.get('project')
+            
+            if name and project:
+                key = f"{name}:{project}"
+                model_by_name_and_project[key] = model
+                
+                if name not in model_by_name:
+                    model_by_name[name] = []
+                model_by_name[name].append(model)
+        
+        # Find dimension models that appear in multiple projects
+        shared_dimension_models = {
+            name: models_list for name, models_list in model_by_name.items() 
+            if name.startswith('dim_') and len(models_list) > 1
+        }
+        
+        # For each shared dimension model, identify its home project
+        for dim_name, dim_models in shared_dimension_models.items():
+            # Extract entity name (e.g., "customer" from "dim_customer")
+            entity_name = dim_name.split('_', 1)[1] if '_' in dim_name else ""
+            
+            # Find the home project (the project that contains the entity name)
+            home_project = None
+            home_model = None
+            
+            for model in dim_models:
+                project = model.get('project')
+                if project and entity_name in project:
+                    home_project = project
+                    home_model = model
+                    break
+            
+            # If we found a home project, mark this model as the canonical one
+            if home_model:
+                home_model['is_canonical'] = True
+                
+                # Mark other versions as references to the canonical model
+                for model in dim_models:
+                    if model.get('id') != home_model.get('id'):
+                        model['references_canonical'] = home_model.get('id')
+        
+        # Process lineage to fix cross-project references
+        updated_lineage = []
+        for link in lineage:
+            source_id = link.get('source')
+            target_id = link.get('target')
+            
+            # Skip invalid links
+            if not source_id or not target_id:
+                continue
+                
+            source_model = model_by_id.get(source_id)
+            target_model = model_by_id.get(target_id)
+            
+            # Skip if models not found
+            if not source_model or not target_model:
+                continue
+            
+            # Handle references to non-canonical dimension models
+            if target_model.get('references_canonical'):
+                # Replace with a link to the canonical model
+                target_id = target_model.get('references_canonical')
+            
+            if source_model.get('references_canonical'):
+                # Replace with a link from the canonical model
+                source_id = source_model.get('references_canonical')
+            
+            # Create updated link
+            updated_link = {
+                'source': source_id,
+                'target': target_id
+            }
+            
+            # Add to updated lineage if not a self-reference after canonicalization
+            if source_id != target_id:
+                updated_lineage.append(updated_link)
+        
+        # Return processed models and lineage
+        return models, updated_lineage
+
+    def get_all_lineage(self):
+        """Get all lineage data"""
+        models = self.get_models()
+        lineage = self._load_lineage()
+        
+        # Process cross-project references
+        processed_models, processed_lineage = self.process_cross_project_references(models, lineage)
+        
+        return {
+            "models": processed_models,
+            "lineage": processed_lineage
+        }
