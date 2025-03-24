@@ -22,7 +22,8 @@ class FileWatcherService:
             watch_interval: How often to check for changes in seconds
             file_patterns: List of file patterns to watch for (default: manifest.json, catalog.json)
         """
-        self.dbt_projects_dir = os.path.abspath(dbt_projects_dir)
+        # If already absolute, use it directly; otherwise, make it absolute
+        self.dbt_projects_dir = dbt_projects_dir if os.path.isabs(dbt_projects_dir) else os.path.abspath(dbt_projects_dir)
         self.refresh_callback = refresh_callback
         self.watch_interval = watch_interval
         self.file_patterns = file_patterns or ["manifest.json", "catalog.json"]

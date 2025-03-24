@@ -12,23 +12,22 @@ WITH source AS (
 SELECT
     risk_id,
     customer_id,
-    CAST(assessment_date AS DATE) AS assessment_date,
-    credit_score,
-    claim_frequency,
-    risk_score,
-    previous_claims_count,
+    assessment_date::date as assessment_date,
+    credit_score::int as credit_score,
+    claim_frequency::float as claim_frequency,
+    risk_score::float as risk_score,
+    previous_claims_count::int as previous_claims_count,
     risk_category,
-    CAST(last_assessment AS DATE) AS last_assessment,
+    last_assessment::date as last_assessment,
     assessment_source,
-    -- Derived fields
-    DATEDIFF('day', last_assessment, assessment_date) AS days_since_last_assessment,
-    CASE
-        WHEN credit_score >= 750 THEN 'EXCELLENT'
-        WHEN credit_score >= 700 THEN 'GOOD'
-        WHEN credit_score >= 650 THEN 'FAIR'
-        WHEN credit_score >= 600 THEN 'POOR'
-        ELSE 'VERY_POOR'
-    END AS credit_rating,
+    -- Add derived fields
+    case
+        when risk_score >= 800 then 'Very High Risk'
+        when risk_score >= 600 then 'High Risk'
+        when risk_score >= 400 then 'Medium Risk'
+        when risk_score >= 200 then 'Low Risk'
+        else 'Very Low Risk'
+    end as risk_level,
     -- Metadata fields
     CURRENT_TIMESTAMP AS dbt_updated_at,
     'customer_risk' AS _dbt_source_project

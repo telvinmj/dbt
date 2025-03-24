@@ -1,48 +1,60 @@
 # Global default settings
-default:
+insurance_dbt:
   target: dev
   outputs:
     dev:
-      type: sqlite
-      database: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
       schema: main
-      threads: 1
 
 # Claims Processing project profile
 claims_processing:
   target: dev
   outputs:
     dev:
-      type: sqlite
-      database: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
       schema: main
-      threads: 1
 
 # Policy Management project profile
 policy_management:
   target: dev
   outputs:
     dev:
-      type: sqlite
-      database: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
       schema: main
-      threads: 1
 
 # Customer Risk project profile
 customer_risk:
   target: dev
   outputs:
     dev:
-      type: sqlite
-      database: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_projects_2/insurance_data.db
       schema: main
-      threads: 1
 
 # You can also define production environments if needed
-# claims_processing:
+# retail_ops:
+#   target: dev
 #   outputs:
-#     prod:
-#       type: sqlite
-#       database: /path/to/production/insurance_data.db
-#       schema: main
-#       threads: 4 
+#     dev:
+#       type: duckdb
+#       path: /Users/telvin/Desktop/dbt/dbt_projects/data/retail_warehouse.duckdb
+#       schema: retail
+
+# customer_360:
+#   target: dev
+#   outputs:
+#     dev:
+#       type: duckdb
+#       path: /Users/telvin/Desktop/dbt/dbt_projects/data/retail_warehouse.duckdb
+#       schema: customer
+
+# finance_metrics:
+#   target: dev
+#   outputs:
+#     dev:
+#       type: duckdb
+#       path: /Users/telvin/Desktop/dbt/dbt_projects/data/retail_warehouse.duckdb
+#       schema: finance 

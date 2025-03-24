@@ -82,8 +82,9 @@ def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
                     description = node.get('description', '')
                     materialized = node.get('config', {}).get('materialized', 'view')
                     
-                    # Generate a unique ID for the model
-                    model_id = f"{project_id[0]}{model_count + 1}"
+                    # Generate a unique ID for the model using the project_id as prefix
+                    # This ensures uniqueness across all projects
+                    model_id = f"{project_id}_{model_name}"
                     model_id_map[node_id] = model_id
                     model_count += 1
                     

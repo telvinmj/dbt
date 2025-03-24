@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: customer_project
+    database: "{{ var('customer_project_database', target.database) }}"
+    schema: "{{ var('customer_project_schema', 'customer_marts') }}"
+    tables:
+      - name: dim_customer
+        identifier: dim_customer
+
+  - name: policy_project
+    database: "{{ var('policy_project_database', target.database) }}"
+    schema: "{{ var('policy_project_schema', 'policy_marts') }}"
+    tables:
+      - name: fct_policy
+        identifier: fct_policy 

@@ -1,0 +1,13 @@
+policy_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_policies.duckdb
+      schema: policy
+      threads: 4
+    prod:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_policies.duckdb
+      schema: policy
+      threads: 4 

@@ -1,0 +1,42 @@
+name: 'policy_project'
+version: '1.0.0'
+config-version: 2
+
+profile: 'policy_profile'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+docs-paths: ["docs"]
+asset-paths: ["assets"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+models:
+  policy_project:
+    # Config defaults for all models in the project
+    +materialized: view
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+      +schema: marts
+
+# Define dependencies with other projects
+vars:
+  customer_project_database: "main"
+  customer_project_schema: "customer_marts"
+
+# On-run-end hook to inform about cross-project dependencies
+on-run-end:
+  - "{{ log('Policy project run complete. This project depends on customer_project models and is referenced by claims_project.', info=True) }}" 

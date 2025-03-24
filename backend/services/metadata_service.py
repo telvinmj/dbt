@@ -19,7 +19,13 @@ class MetadataService:
             output_dir = os.path.join(base_dir, "exports")
         
         # Make sure we're using absolute paths
-        self.dbt_projects_dir = os.path.abspath(os.path.join(base_dir, "..", dbt_projects_dir))
+        if os.path.isabs(dbt_projects_dir):
+            # If absolute path is provided, use it directly
+            self.dbt_projects_dir = dbt_projects_dir
+        else:
+            # If relative path, resolve relative to base_dir
+            self.dbt_projects_dir = os.path.abspath(os.path.join(base_dir, "..", dbt_projects_dir))
+            
         self.output_dir = os.path.abspath(output_dir)
         self.unified_metadata_path = os.path.join(self.output_dir, "uni_metadata.json")
         self.metadata = {}
@@ -138,7 +144,7 @@ class MetadataService:
                         model_name = node.get('name', '')
                         
                         # Generate a unique ID for the model
-                        model_id = f"{project_id[0]}{model_count + 1}"
+                        model_id = f"{project_id}_{model_name}"
                         model_id_map[node_id] = model_id
                         model_count += 1
                         
@@ -341,10 +347,11 @@ class MetadataService:
             # Parse projects
             metadata = self._parse_dbt_projects()
             
-            # Enrich with AI descriptions if enabled
-            if self.use_ai_descriptions and self.ai_service:
-                print("Enriching metadata with AI-generated descriptions...")
-                metadata = self.ai_service.enrich_metadata(metadata)
+            # Temporarily disable AI descriptions for testing
+            # if self.use_ai_descriptions and self.ai_service:
+            #     print("Enriching metadata with AI-generated descriptions...")
+            #     metadata = self.ai_service.enrich_metadata(metadata)
+            print("AI descriptions temporarily disabled for faster testing")
             
             # Save to file
             with open(self.unified_metadata_path, 'w') as f:

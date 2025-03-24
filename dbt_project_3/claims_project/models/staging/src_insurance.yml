@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: raw_insurance
+    database: "{{ var('raw_insurance_database', target.database) }}"
+    schema: "{{ var('raw_insurance_schema', 'raw_insurance') }}"
+    description: Insurance data from source systems
+    
+    tables:
+      - name: claims
+        description: Insurance claims data
+        columns:
+          - name: claim_id
+            description: Unique identifier for claims
+            tests:
+              - unique
+              - not_null
+          - name: policy_id
+            description: Reference to the policy associated with the claim
+            tests:
+              - not_null
+          - name: customer_id
+            description: Reference to the customer who filed the claim
+            tests:
+              - not_null
+          - name: claim_date
+            description: Date when the claim was filed
+          - name: incident_date
+            description: Date when the incident occurred
+          - name: description
+            description: Description of the claim incident
+          - name: claim_amount
+            description: Amount claimed
+          - name: approved_amount
+            description: Amount approved for payment
+          - name: status
+            description: Current status of the claim (pending, approved, denied, etc.)
+          - name: adjuster_id
+            description: Identifier for the claim adjuster
+          - name: created_at
+            description: Timestamp when the record was created
+          - name: updated_at
+            description: Timestamp when the record was last updated 

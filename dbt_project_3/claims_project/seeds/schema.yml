@@ -1,0 +1,56 @@
+version: 2
+
+seeds:
+  - name: raw_claims
+    description: "Sample claims data for testing"
+    config:
+      schema: raw_insurance
+      column_types:
+        claim_id: integer
+        policy_id: integer
+        customer_id: integer
+        claim_date: date
+        incident_date: date
+        claim_amount: float
+        approved_amount: float
+        created_at: timestamp
+        updated_at: timestamp
+      nullstr: 'null'
+    columns:
+      - name: claim_id
+        description: "Unique identifier for the claim"
+        tests:
+          - unique
+          - not_null
+      - name: policy_id
+        description: "ID of the policy associated with the claim"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('raw_policies', 'policy_project')
+              field: policy_id
+      - name: customer_id
+        description: "ID of the customer who filed the claim"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('raw_customers', 'customer_project')
+              field: customer_id
+      - name: claim_date
+        description: "Date when the claim was filed"
+      - name: incident_date
+        description: "Date when the incident occurred"
+      - name: description
+        description: "Description of the claim incident"
+      - name: claim_amount
+        description: "Amount claimed by the customer"
+      - name: approved_amount
+        description: "Amount approved for payment"
+      - name: status
+        description: "Current status of the claim (approved, pending, denied)"
+      - name: adjuster_id
+        description: "ID of the adjuster who processed the claim"
+      - name: created_at
+        description: "Timestamp when the record was created"
+      - name: updated_at
+        description: "Timestamp when the record was last updated" 

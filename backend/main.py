@@ -21,6 +21,13 @@ load_dotenv()
 # Get dbt projects directory from environment (set either in run.py or .env)
 dbt_projects_dir = os.environ.get("DBT_PROJECTS_DIR", "dbt_projects_2")
 
+# Check if it's an absolute path and use it directly if so
+if os.path.isabs(dbt_projects_dir):
+    print(f"Using absolute path for dbt_projects_dir: {dbt_projects_dir}")
+else:
+    # If relative, keep as is - metadata_service will resolve it relative to base_dir
+    print(f"Using relative path for dbt_projects_dir: {dbt_projects_dir}")
+
 # Initialize FastAPI app
 app = FastAPI(title="DBT Metadata Explorer API")
 

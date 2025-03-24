@@ -1,129 +1,63 @@
 #!/usr/bin/env python
 # check_lineage.py
 
-from services.metadata_service import MetadataService
+import json
+import os
 
-def main():
-    # Initialize the metadata service
-    m = MetadataService()
+def check_lineage():
+    """Check the lineage connections in the metadata file"""
+    metadata_path = os.path.join('exports', 'uni_metadata.json')
     
-    # Check all models
-    all_models = m.get_models()
+    if not os.path.exists(metadata_path):
+        print(f"Metadata file not found at {metadata_path}")
+        return
     
-    # Get staging models
-    print('=== STAGING MODELS ===')
-    staging_models = [model for model in all_models if model['name'].startswith('stg_')]
-    for model in staging_models:
-        model_id = model['id']
-        model_name = model['name']
-        project = model['project']
+    try:
+        with open(metadata_path, 'r') as f:
+            data = json.load(f)
         
-        try:
-            model_with_lineage = m.get_model_with_lineage(model_id)
-            upstream_count = len(model_with_lineage.get('upstream', []))
-            downstream_count = len(model_with_lineage.get('downstream', []))
-            
-            print(f"{model_name} (Project: {project}) - ID: {model_id}")
-            print(f"  Upstream: {upstream_count}")
-            
-            if downstream_count > 0:
-                print(f"  Downstream: {downstream_count}")
-                for down in model_with_lineage.get('downstream', []):
-                    print(f"    - {down['name']} (Project: {down['project']})")
-            else:
-                print("  Downstream: None (No lineage connections)")
-            print()
-        except Exception as e:
-            print(f"Error processing {model_name}: {str(e)}")
-    
-    # Get intermediate models
-    print('\n=== INTERMEDIATE MODELS ===')
-    int_models = [model for model in all_models if model['name'].startswith('int_')]
-    for model in int_models:
-        model_id = model['id']
-        model_name = model['name']
-        project = model['project']
+        projects = data.get('projects', [])
+        models = data.get('models', [])
+        lineage = data.get('lineage', [])
         
-        try:
-            model_with_lineage = m.get_model_with_lineage(model_id)
-            upstream_count = len(model_with_lineage.get('upstream', []))
-            downstream_count = len(model_with_lineage.get('downstream', []))
+        print(f"Projects: {len(projects)}")
+        print(f"Models: {len(models)}")
+        print(f"Lineage connections: {len(lineage)}")
+        
+        # Create model lookup dictionary for easy reference
+        model_lookup = {}
+        for model in models:
+            model_id = model.get('id')
+            if model_id:
+                model_lookup[model_id] = {
+                    'name': model.get('name', 'Unknown'),
+                    'project': model.get('project', 'Unknown')
+                }
+        
+        print("\nLineage connections:")
+        for i, connection in enumerate(lineage):
+            source_id = connection.get('source')
+            target_id = connection.get('target')
+            source_info = model_lookup.get(source_id, {'name': 'Unknown', 'project': 'Unknown'})
+            target_info = model_lookup.get(target_id, {'name': 'Unknown', 'project': 'Unknown'})
             
-            print(f"{model_name} (Project: {project}) - ID: {model_id}")
-            
-            if upstream_count > 0:
-                print(f"  Upstream: {upstream_count}")
-                for up in model_with_lineage.get('upstream', []):
-                    print(f"    - {up['name']} (Project: {up['project']})")
-            else:
-                print("  Upstream: None (No lineage connections)")
+            print(f"{i+1}. {source_info['name']} ({source_id}) -> {target_info['name']} ({target_id})")
+            print(f"   Project: {source_info['project']} -> {target_info['project']}")
+        
+        print("\nModels without upstream connections:")
+        models_without_upstream = set(model.get('id') for model in models) - set(conn.get('target') for conn in lineage)
+        for model_id in models_without_upstream:
+            if model_id in model_lookup:
+                print(f"- {model_lookup[model_id]['name']} ({model_id})")
+        
+        print("\nModels without downstream connections:")
+        models_without_downstream = set(model.get('id') for model in models) - set(conn.get('source') for conn in lineage)
+        for model_id in models_without_downstream:
+            if model_id in model_lookup:
+                print(f"- {model_lookup[model_id]['name']} ({model_id})")
                 
-            if downstream_count > 0:
-                print(f"  Downstream: {downstream_count}")
-                for down in model_with_lineage.get('downstream', []):
-                    print(f"    - {down['name']} (Project: {down['project']})")
-            else:
-                print("  Downstream: None (No lineage connections)")
-            print()
-        except Exception as e:
-            print(f"Error processing {model_name}: {str(e)}")
-    
-    # Get mart models
-    print('\n=== MART MODELS ===')
-    mart_models = [model for model in all_models if model['name'].startswith('mart_')]
-    for model in mart_models:
-        model_id = model['id']
-        model_name = model['name']
-        project = model['project']
-        
-        try:
-            model_with_lineage = m.get_model_with_lineage(model_id)
-            upstream_count = len(model_with_lineage.get('upstream', []))
-            downstream_count = len(model_with_lineage.get('downstream', []))
-            
-            print(f"{model_name} (Project: {project}) - ID: {model_id}")
-            
-            if upstream_count > 0:
-                print(f"  Upstream: {upstream_count}")
-                for up in model_with_lineage.get('upstream', []):
-                    print(f"    - {up['name']} (Project: {up['project']})")
-            else:
-                print("  Upstream: None (No lineage connections)")
-                
-            if downstream_count > 0:
-                print(f"  Downstream: {downstream_count}")
-                for down in model_with_lineage.get('downstream', []):
-                    print(f"    - {down['name']} (Project: {down['project']})")
-            else:
-                print("  Downstream: None (No lineage connections)")
-            print()
-        except Exception as e:
-            print(f"Error processing {model_name}: {str(e)}")
-    
-    # Check cross-project lineage
-    print('\n=== CROSS-PROJECT LINEAGE ===')
-    lineage = m.get_lineage()
-    cross_project_links = []
-    
-    for link in lineage:
-        source_id = link['source']
-        target_id = link['target']
-        
-        source_model = next((m for m in all_models if m['id'] == source_id), None)
-        target_model = next((m for m in all_models if m['id'] == target_id), None)
-        
-        if source_model and target_model and source_model['project'] != target_model['project']:
-            cross_project_links.append({
-                'source': source_model,
-                'target': target_model
-            })
-    
-    if cross_project_links:
-        print(f"Found {len(cross_project_links)} cross-project lineage connections:")
-        for link in cross_project_links:
-            print(f"  {link['source']['name']} (Project: {link['source']['project']}) -> {link['target']['name']} (Project: {link['target']['project']})")
-    else:
-        print("No cross-project lineage connections found.")
+    except Exception as e:
+        print(f"Error reading metadata: {str(e)}")
 
 if __name__ == "__main__":
-    main() 
+    check_lineage() 

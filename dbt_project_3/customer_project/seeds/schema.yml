@@ -1,0 +1,44 @@
+version: 2
+
+seeds:
+  - name: raw_customers
+    description: "Sample customer data for testing"
+    config:
+      schema: raw_insurance
+      column_types:
+        customer_id: integer
+        date_of_birth: date
+        created_at: timestamp
+        updated_at: timestamp
+    columns:
+      - name: customer_id
+        description: "Unique identifier for the customer"
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        description: "Customer's first name"
+      - name: last_name
+        description: "Customer's last name"
+      - name: email
+        description: "Customer's email address"
+        tests:
+          - unique
+      - name: phone_number
+        description: "Customer's phone number"
+      - name: address
+        description: "Customer's street address"
+      - name: city
+        description: "City of residence"
+      - name: state
+        description: "State of residence (2-letter code)"
+      - name: zip_code
+        description: "Postal code"
+      - name: date_of_birth
+        description: "Customer's date of birth"
+      - name: gender
+        description: "Customer's gender (M/F)"
+      - name: created_at
+        description: "Timestamp when the record was created"
+      - name: updated_at
+        description: "Timestamp when the record was last updated" 

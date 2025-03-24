@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: raw_insurance
+    database: "{{ var('raw_insurance_database', target.database) }}"
+    schema: "{{ var('raw_insurance_schema', 'raw_insurance') }}"
+    description: Insurance data from source systems
+    
+    tables:
+      - name: raw_customers
+        description: Customer data from the CRM system
+        columns:
+          - name: customer_id
+            description: Unique identifier for customers
+            tests:
+              - unique
+              - not_null
+          - name: first_name
+            description: First name of the customer
+          - name: last_name
+            description: Last name of the customer
+          - name: email
+            description: Email address of the customer
+            tests:
+              - unique
+          - name: phone_number
+            description: Phone number of the customer
+          - name: address
+            description: Street address of the customer
+          - name: city
+            description: City of the customer's address
+          - name: state
+            description: State of the customer's address
+          - name: zip_code
+            description: ZIP code of the customer's address
+          - name: date_of_birth
+            description: Date of birth of the customer
+          - name: gender
+            description: Gender of the customer
+          - name: created_at
+            description: Timestamp when the record was created
+          - name: updated_at
+            description: Timestamp when the record was last updated 

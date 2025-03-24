@@ -78,6 +78,14 @@ echo "REACT_APP_API_URL=http://localhost:8000" > .env
 ```bash
 # From the backend directory with virtual environment activated
 python run.py
+# Or using a custom dbt projects directory
+python run.py --projects-dir /path/to/your/dbt_projects
+
+# Additional command-line options:
+# --host: Specify the host to run the server on
+# --port: Specify the port to run the server on
+python run.py --projects-dir custom_dbt_dir --host 127.0.0.1 --port 8080
+
 # Or using uvicorn directly
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -127,7 +135,7 @@ dbt-metadata-explorer/
 │   ├── package.json             # npm dependencies and scripts
 │   └── .env                     # Environment variables
 │
-└── dbt_projects_2/              # Directory containing dbt projects
+└── dbt_projects/                # Directory containing dbt projects
     ├── claims_processing/       # Sample dbt project
     ├── customer_risk/           # Sample dbt project
     └── policy_management/       # Sample dbt project
@@ -144,11 +152,19 @@ Both the frontend and backend include development servers that automatically rel
 
 ### Adding New dbt Projects
 
-Add new dbt projects to the `dbt_projects_2/` directory, then:
+Add new dbt projects to your projects directory (default is `dbt_projects_2/`), then:
 
 1. Ensure they have been compiled with `dbt compile` or `dbt run` to generate manifest.json
 2. Click "Refresh" in the web UI or restart the backend server
 3. The new project should automatically appear in the UI
+
+### Changing the dbt Projects Directory
+
+You can specify a different dbt projects directory in several ways:
+
+1. **Command-line argument**: `python run.py --projects-dir /path/to/projects`
+2. **Environment variable**: Set `DBT_PROJECTS_DIR` in your `.env` file
+3. **Runtime**: Export the environment variable before running: `export DBT_PROJECTS_DIR=/path/to/projects`
 
 ## Troubleshooting
 

@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: raw_insurance
+    database: "{{ var('raw_insurance_database', target.database) }}"
+    schema: "{{ var('raw_insurance_schema', 'raw_insurance') }}"
+    description: Insurance data from source systems
+    
+    tables:
+      - name: policies
+        description: Insurance policy data
+        columns:
+          - name: policy_id
+            description: Unique identifier for policies
+            tests:
+              - unique
+              - not_null
+          - name: customer_id
+            description: Reference to the customer who owns the policy
+            tests:
+              - not_null
+          - name: policy_type
+            description: Type of insurance policy (auto, home, life, etc.)
+          - name: policy_number
+            description: Policy number used for identification
+            tests:
+              - unique
+          - name: premium_amount
+            description: Amount of premium paid for the policy
+          - name: coverage_limit
+            description: Maximum coverage amount
+          - name: deductible_amount
+            description: Deductible amount for the policy
+          - name: effective_date
+            description: Date when the policy becomes effective
+          - name: expiration_date
+            description: Date when the policy expires
+          - name: status
+            description: Current status of the policy (active, expired, etc.)
+          - name: created_at
+            description: Timestamp when the record was created
+          - name: updated_at
+            description: Timestamp when the record was last updated 

@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: customer_project
+    database: "insurance_customers"
+    schema: "customer_marts"
+    tables:
+      - name: dim_customer
+        description: "Customer dimension from the customer project" 

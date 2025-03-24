@@ -1,0 +1,13 @@
+claims_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_claims.duckdb
+      schema: claims
+      threads: 4
+    prod:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_claims.duckdb
+      schema: claims
+      threads: 4 

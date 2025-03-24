@@ -1,0 +1,41 @@
+claims_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_claims.duckdb
+      schema: claims
+      threads: 4
+    prod:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_claims.duckdb
+      schema: claims
+      threads: 4
+
+policy_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_policies.duckdb
+      schema: policy
+      threads: 4
+    prod:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_policies.duckdb
+      schema: policy
+      threads: 4
+
+customer_profile:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_customers.duckdb
+      schema: customer
+      threads: 4
+    prod:
+      type: duckdb
+      path: /Users/telvin/Desktop/dbt/dbt_project_3/data/insurance_customers.duckdb
+      schema: customer
+      threads: 4 
