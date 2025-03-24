@@ -42,7 +42,8 @@ class Model(Base):
     schema = SQLColumn(String(100))
     materialized = SQLColumn(String(50))
     description = SQLColumn(Text)
-    # ai_description = SQLColumn(Text)  # Commented out AI field
+    ai_description = SQLColumn(Text)  # AI-generated description
+    user_edited = SQLColumn(Boolean, default=False)  # Track if description was edited by user
     raw_sql = SQLColumn(Text)
     compiled_sql = SQLColumn(Text)
     created_at = SQLColumn(DateTime, default=datetime.datetime.utcnow)
@@ -65,7 +66,8 @@ class ColumnModel(Base):
     model_id = SQLColumn(Integer, ForeignKey('models.id'))
     data_type = SQLColumn(String(50))
     description = SQLColumn(Text)
-    # ai_description = SQLColumn(Text)  # Commented out AI field
+    ai_description = SQLColumn(Text)  # AI-generated description
+    user_edited = SQLColumn(Boolean, default=False)  # Track if description was edited by user
     is_primary_key = SQLColumn(Boolean, default=False)
     is_foreign_key = SQLColumn(Boolean, default=False)
     created_at = SQLColumn(DateTime, default=datetime.datetime.utcnow)

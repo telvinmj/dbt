@@ -4,7 +4,6 @@ import { Spin, Alert, Layout, Menu, Space, Button, Tag, Table } from 'antd';
 import { 
   TableOutlined, 
   ApartmentOutlined, 
-  ProjectOutlined, 
   DashboardOutlined,
   DatabaseOutlined,
   SyncOutlined,
@@ -425,9 +424,6 @@ function App() {
       case 'models':
         navigate('/models');
         break;
-      case 'projects':
-        navigate('/projects');
-        break;
       case 'lineage':
         navigate('/lineage');
         break;
@@ -461,8 +457,8 @@ function App() {
           <p>Documentation updates automatically as dbt models change</p>
         </div>
         <div className="feature-card">
-          <h4>AI-Generated Descriptions</h4>
-          <p>Smart descriptions generated from model code</p>
+          <h4>Auto-Generated AI Descriptions</h4>
+          <p>Intelligent descriptions auto-generated from model code</p>
         </div>
         <div className="feature-card">
           <h4>User Corrections</h4>
@@ -483,40 +479,6 @@ function App() {
             <p className="project-models">
               {models.filter(model => model.project === project.name).length} models
             </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderProjects = () => (
-    <div className="projects-section">
-      <h2>Projects ({projects.length})</h2>
-      <div className="projects-grid">
-        {projects.map(project => (
-          <div key={project.id} className="project-card">
-            <h3>{project.name}</h3>
-            <p className="project-path">{project.path}</p>
-            <p>Created: {new Date(project.created_at).toLocaleDateString()}</p>
-            <p>Updated: {new Date(project.updated_at).toLocaleDateString()}</p>
-            <h4>Models</h4>
-            <ul className="project-models-list">
-              {models
-                .filter(model => model.project === project.name)
-                .slice(0, 5)
-                .map(model => (
-                  <li key={model.id}>
-                    <Link to={`/models/${model.id}`}>{model.name}</Link>
-                  </li>
-                ))}
-              {models.filter(model => model.project === project.name).length > 5 && (
-                <li>
-                  <Link to={`/projects/${project.id}`}>
-                    +{models.filter(model => model.project === project.name).length - 5} more...
-                  </Link>
-                </li>
-              )}
-            </ul>
           </div>
         ))}
       </div>
@@ -554,39 +516,45 @@ function App() {
   return (
     <Layout className="app-layout">
       <Header className="app-header">
-        <div className="logo">
-          <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>
-            <DatabaseOutlined /> DBT Metadata Explorer
-          </Link>
+        <div className="header-container">
+          <div className="logo">
+            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '18px', fontWeight: 'bold' }}>
+              <DatabaseOutlined style={{ marginRight: '10px' }} /> DBT Metadata Explorer
+            </Link>
+          </div>
+          <div className="navigation">
+            <Menu
+              theme="dark"
+              mode="horizontal"
+              selectedKeys={[activeTab]}
+              onSelect={({ key }) => handleTabChange(key as string)}
+              style={{ lineHeight: '64px', borderRight: 0, minWidth: '400px' }}
+            >
+              <Menu.Item key="dashboard" icon={<DashboardOutlined />}>Dashboard</Menu.Item>
+              <Menu.Item key="models" icon={<TableOutlined />}>Models</Menu.Item>
+              <Menu.Item key="lineage" icon={<ApartmentOutlined />}>Lineage</Menu.Item>
+            </Menu>
+          </div>
+          <div className="header-actions">
+            <Space size="middle">
+              <WatcherStatusIndicator />
+              <Button 
+                icon={<SyncOutlined />} 
+                onClick={async () => {
+                  try {
+                    await refreshMetadata();
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Error refreshing metadata:', error);
+                  }
+                }}
+              >
+                Refresh
+              </Button>
+              <ExportButton />
+            </Space>
+          </div>
         </div>
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          selectedKeys={[activeTab]}
-          onSelect={({ key }) => handleTabChange(key as string)}
-        >
-          <Menu.Item key="dashboard" icon={<DashboardOutlined />}>Dashboard</Menu.Item>
-          <Menu.Item key="models" icon={<TableOutlined />}>Models</Menu.Item>
-          <Menu.Item key="projects" icon={<ProjectOutlined />}>Projects</Menu.Item>
-          <Menu.Item key="lineage" icon={<ApartmentOutlined />}>Lineage</Menu.Item>
-        </Menu>
-        <Space className="header-buttons">
-          <WatcherStatusIndicator />
-          <Button 
-            icon={<SyncOutlined />} 
-            onClick={async () => {
-              try {
-                await refreshMetadata();
-                window.location.reload();
-              } catch (error) {
-                console.error('Error refreshing metadata:', error);
-              }
-            }}
-          >
-            Refresh
-          </Button>
-          <ExportButton />
-        </Space>
       </Header>
       
       <Content className="app-content">
@@ -605,14 +573,14 @@ function App() {
           <Route path="/" element={renderDashboard()} />
           <Route path="/models" element={<ModelsTable models={models} projects={projects} lineage={lineage} />} />
           <Route path="/models/:id" element={<ModelDetail />} />
-          <Route path="/projects" element={renderProjects()} />
-          <Route path="/projects/:id" element={<ModelDetail />} />
           <Route path="/lineage" element={renderLineage()} />
         </Routes>
       </Content>
       
       <Footer className="app-footer">
-        <p>DBT Metadata Explorer &copy; 2023</p>
+        <div className="footer-container">
+          <p>DBT Metadata Explorer &copy; 2023</p>
+        </div>
       </Footer>
     </Layout>
   );

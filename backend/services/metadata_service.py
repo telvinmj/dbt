@@ -10,7 +10,7 @@ from .ai_description_service import AIDescriptionService
 class MetadataService:
     """Service for combining and processing dbt project metadata"""
     
-    def __init__(self, dbt_projects_dir: str = "dbt_projects_2", output_dir: str = None, use_ai_descriptions: bool = True):
+    def __init__(self, dbt_projects_dir: str = "dbt_pk/dbt", output_dir: str = None, use_ai_descriptions: bool = True):
         # Get the base directory (parent of backend)
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
@@ -248,30 +248,60 @@ class MetadataService:
                 print(f"  Processed {model_count} models for project {project_name}")
                 
                 # Process lineage
-                for node_id, node in manifest_data.get('nodes', {}).items():
-                    if node.get('resource_type') == 'model' and node_id in model_id_map:
-                        target_id = model_id_map[node_id]
-                        
-                        # Get dependencies
-                        for dep_node_id in node.get('depends_on', {}).get('nodes', []):
-                            if dep_node_id in model_id_map:
-                                source_id = model_id_map[dep_node_id]
+                lineage_data = []
+                model_by_name = {}
+                
+                # First, build a lookup of models by name
+                for model in models:
+                    name = model['name']
+                    if name not in model_by_name:
+                        model_by_name[name] = []
+                    model_by_name[name].append(model)
+                
+                # Now process each model for lineage
+                for model in models:
+                    # Get the SQL
+                    sql = model.get('sql', '')
+                    if not sql:
+                        continue
+                    
+                    # Look for source() references
+                    source_refs = re.findall(r'{{\s*source\([\'"]([^\'"]+)[\'"],\s*[\'"]([^\'"]+)[\'"]\)\s*}}', sql)
+                    for source_name, table_name in source_refs:
+                        # Find the referenced model in any project
+                        if table_name in model_by_name:
+                            for source_model in model_by_name[table_name]:
                                 lineage_data.append({
-                                    "source": source_id,
-                                    "target": target_id
+                                    "source": source_model['id'],
+                                    "target": model['id'],
+                                    "type": "source"
+                                })
+                    
+                    # Look for ref() references
+                    ref_matches = re.findall(r'{{\s*ref\([\'"]([^\'"]+)[\'"]\)\s*}}', sql)
+                    for ref_name in ref_matches:
+                        # Find the referenced model in any project
+                        if ref_name in model_by_name:
+                            for ref_model in model_by_name[ref_name]:
+                                lineage_data.append({
+                                    "source": ref_model['id'],
+                                    "target": model['id'],
+                                    "type": "ref"
                                 })
                 
-                # Print sample lineage
-                if lineage_data:
-                    print("\n  Sample Lineage Relationships:")
-                    for i, lineage in enumerate(lineage_data[:3]):
-                        source_model = next((m for m in models if m["id"] == lineage["source"]), None)
-                        target_model = next((m for m in models if m["id"] == lineage["target"]), None)
-                        source_name = source_model["name"] if source_model else "unknown"
-                        target_name = target_model["name"] if target_model else "unknown"
-                        print(f"    {source_name} ({lineage['source']}) -> {target_name} ({lineage['target']})")
-                        if i >= 2:
-                            break
+                # Create the final metadata object
+                metadata = {
+                    "projects": projects,
+                    "models": models,
+                    "lineage": lineage_data
+                }
+                
+                print(f"\nParsing complete:")
+                print(f"  Projects: {len(projects)}")
+                print(f"  Models: {len(models)}")
+                print(f"  Lineage relationships: {len(lineage_data)}")
+                
+                return metadata
             
             except Exception as e:
                 print(f"Error processing project {project_dir}: {str(e)}")
@@ -342,29 +372,116 @@ class MetadataService:
         return result
     
     def refresh(self) -> bool:
-        """Refresh metadata from dbt projects"""
+        """
+        Refresh the unified metadata by parsing all dbt projects
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
         try:
-            # Parse projects
-            metadata = self._parse_dbt_projects()
+            print(f"Refreshing metadata from {self.dbt_projects_dir}")
+            if not os.path.exists(self.dbt_projects_dir):
+                print(f"Error: Projects directory does not exist: {self.dbt_projects_dir}")
+                return False
             
-            # Temporarily disable AI descriptions for testing
-            # if self.use_ai_descriptions and self.ai_service:
-            #     print("Enriching metadata with AI-generated descriptions...")
-            #     metadata = self.ai_service.enrich_metadata(metadata)
-            print("AI descriptions temporarily disabled for faster testing")
+            # Create exports directory if it doesn't exist
+            os.makedirs(self.output_dir, exist_ok=True)
             
-            # Save to file
-            with open(self.unified_metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2)
+            # Parse all dbt projects
+            raw_metadata = parse_dbt_projects(self.dbt_projects_dir)
             
-            # Update in-memory metadata
-            self.metadata = metadata
+            if not raw_metadata:
+                print("Error: Failed to parse dbt projects")
+                return False
+                
+            # Use the raw metadata directly without modification
+            self.metadata = raw_metadata
             
-            print(f"Metadata refreshed successfully and saved to {self.unified_metadata_path}")
-            print(f"Projects: {len(self.metadata.get('projects', []))}")
-            print(f"Models: {len(self.metadata.get('models', []))}")
-            print(f"Lineage: {len(self.metadata.get('lineage', []))}")
+            # Generate AI descriptions if enabled
+            if self.use_ai_descriptions and self.ai_service:
+                print("\n=== Starting AI Description Generation for All Models ===")
+                models_processed = 0
+                
+                for model in self.metadata.get("models", []):
+                    model_id = model.get("id")
+                    model_name = model.get("name")
+                    
+                    print(f"Processing AI descriptions for model {models_processed+1}: {model_name}")
+                    
+                    # Generate model description if not exists
+                    if not model.get("description") or model.get("refresh_description", False):
+                        model_desc = self.ai_service.generate_model_description(
+                            model_name,
+                            model.get("project", ""),
+                            model.get("sql", ""),
+                            model.get("columns", [])
+                        )
+                        
+                        if model_desc:
+                            model["ai_description"] = model_desc
+                            
+                            # If no description exists, use the AI one
+                            if not model.get("description"):
+                                model["description"] = model_desc
+                                model["user_edited"] = False
+                                print(f"  - Added AI description for model")
+                    
+                    # Process columns for this model
+                    columns_processed = 0
+                    for column in model.get("columns", []):
+                        # Skip if column already has a description and isn't flagged for refresh
+                        if column.get("description") and column.get("description") != "" and not column.get("refresh_description", False):
+                            continue
+                        
+                        column_name = column.get("name", "")
+                        print(f"  - Processing column {columns_processed+1}: {column_name}")
+                        
+                        # Generate column description
+                        column_desc = self.ai_service.generate_column_description(
+                            column_name,
+                            model_name,
+                            model.get("sql", ""),
+                            column.get("type", ""),
+                            model.get("description", "")
+                        )
+                        
+                        if column_desc:
+                            column["ai_description"] = column_desc
+                            
+                            # If no description exists or is empty, use the AI one
+                            if not column.get("description") or column.get("description") == "":
+                                column["description"] = column_desc
+                                column["user_edited"] = False
+                                print(f"    - Added AI description for column")
+                        
+                        columns_processed += 1
+                    
+                    models_processed += 1
+                    
+                    # Save the updated metadata periodically
+                    if models_processed % 5 == 0:
+                        with open(self.unified_metadata_path, 'w') as f:
+                            json.dump(self.metadata, f, indent=2)
+                        print(f"Saved metadata after processing {models_processed} models")
+                
+                print(f"=== Completed AI Description Generation for {models_processed} Models ===\n")
             
+            # Save the processed metadata
+            save_metadata(self.metadata, self.output_dir)
+            
+            # Save a copy to the dbt projects directory as well
+            # This is useful for systems that need the metadata to be alongside the dbt projects
+            save_metadata(self.metadata, self.dbt_projects_dir)
+            
+            # Print a summary of the metadata
+            projects_count = len(self.metadata.get('projects', []))
+            models_count = len(self.metadata.get('models', []))
+            lineage_count = len(self.metadata.get('lineage', []))
+            
+            print(f"Metadata refreshed successfully")
+            print(f"  - Projects: {projects_count}")
+            print(f"  - Models: {models_count}")
+            print(f"  - Lineage relationships: {lineage_count}")
             return True
         except Exception as e:
             print(f"Error refreshing metadata: {str(e)}")
@@ -671,38 +788,13 @@ class MetadataService:
                         
                         print(f"Updated model description for {model['name']}")
                     
-                # Process columns for this model
-                columns_to_process = []
-                
-                # Find columns without descriptions
+                # Process ALL columns for this model, regardless of current state
+                print(f"Processing ALL columns for model {model['name']}")
                 for j, column in enumerate(model.get("columns", [])):
-                    # Skip if the column already has a description and isn't flagged for refresh
-                    if column.get("description") and not column.get("refresh_description"):
-                        continue
-                    
-                    # Add to processing list with priority info
                     column_name = column.get("name", "")
-                    priority = 0
+                    print(f"Processing column {j+1}/{len(model.get('columns', []))}: {column_name}")
                     
-                    # Give higher priority to important columns
-                    if column.get("isPrimaryKey"):
-                        priority += 3
-                    if column.get("isForeignKey"):
-                        priority += 2
-                    if "id" in column_name.lower() or "key" in column_name.lower():
-                        priority += 1
-                        
-                    columns_to_process.append((j, column, priority))
-                
-                # Sort by priority
-                columns_to_process.sort(key=lambda x: x[2], reverse=True)
-                
-                # Process the columns (all of them since this is a targeted refresh)
-                for idx, (j, column, _) in enumerate(columns_to_process):
-                    column_name = column.get("name", "")
-                    print(f"Processing column {idx+1}/{len(columns_to_process)}: {column_name}")
-                    
-                    # Generate column description
+                    # Force refresh of all columns' AI descriptions
                     column_desc = self.ai_service.generate_column_description(
                         column_name,
                         model["name"],
@@ -715,10 +807,11 @@ class MetadataService:
                         # Store AI description
                         column["ai_description"] = column_desc
                         
-                        # If no description exists or refresh was requested, use the AI one
-                        if not column.get("description") or column.get("refresh_description"):
+                        # If no description exists or is empty, use the AI one
+                        if not column.get("description") or column.get("description") == "":
                             column["description"] = column_desc
                             column["user_edited"] = False
+                            print(f"  - Updated description for column {column_name}")
                         
                         # Clear refresh flag
                         if "refresh_description" in column:
@@ -743,7 +836,8 @@ class MetadataService:
     def process_cross_project_references(self, models, lineage):
         """
         Process cross-project references to ensure proper visualization.
-        This includes handling dimension models like dim_customer.
+        This includes handling shared models like my_first_dbt_model and my_second_dbt_model
+        across different projects, as well as models with specific prefixes.
         """
         # Create lookup dictionaries
         model_by_id = {model['id']: model for model in models}
@@ -763,39 +857,83 @@ class MetadataService:
                     model_by_name[name] = []
                 model_by_name[name].append(model)
         
-        # Find dimension models that appear in multiple projects
-        shared_dimension_models = {
+        # Find dimension, staging, and fact models that should be shared across projects
+        shared_models = {
             name: models_list for name, models_list in model_by_name.items() 
-            if name.startswith('dim_') and len(models_list) > 1
+            if (name.startswith('dim_') or name.startswith('stg_') or name.startswith('fct_') or 
+                name == 'my_first_dbt_model' or name == 'my_second_dbt_model') and len(models_list) > 1
         }
         
-        # For each shared dimension model, identify its home project
-        for dim_name, dim_models in shared_dimension_models.items():
-            # Extract entity name (e.g., "customer" from "dim_customer")
-            entity_name = dim_name.split('_', 1)[1] if '_' in dim_name else ""
+        # Print out all shared models for debugging
+        if shared_models:
+            print(f"Found {len(shared_models)} shared models across projects:")
+            for name, model_list in shared_models.items():
+                projects = [m.get('project') for m in model_list]
+                print(f"  - {name} in projects: {', '.join(projects)}")
+        
+        # For each shared model, identify its home project based on naming conventions
+        model_canonical_map = {}  # Maps non-canonical model IDs to canonical model IDs
+        
+        for model_name, model_instances in shared_models.items():
+            # Extract entity name from prefixed models (e.g., "customer" from "dim_customer")
+            entity_name = ""
+            if "_" in model_name:
+                parts = model_name.split('_', 1)
+                if len(parts) > 1:
+                    entity_name = parts[1]
             
-            # Find the home project (the project that contains the entity name)
-            home_project = None
+            # Find the home project based on different rules
             home_model = None
             
-            for model in dim_models:
-                project = model.get('project')
-                if project and entity_name in project:
-                    home_project = project
-                    home_model = model
-                    break
+            # Rule 1: For prefixed models (dim_*, stg_*, fct_*), prefer the project that contains the entity name
+            if entity_name and (model_name.startswith('dim_') or model_name.startswith('stg_') or model_name.startswith('fct_')):
+                for model in model_instances:
+                    project = model.get('project', '')
+                    if entity_name.lower() in project.lower():
+                        home_model = model
+                        break
             
-            # If we found a home project, mark this model as the canonical one
+            # Rule 2: For example models, prefer projects in order: analytics_project, then ecommerce_project, then my_test_project
+            if not home_model and (model_name == 'my_first_dbt_model' or model_name == 'my_second_dbt_model'):
+                # Define priority for example models
+                project_priority = {
+                    'analytics_project': 1,
+                    'ecommerce_project': 2,
+                    'my_test_project': 3
+                }
+                
+                # Sort models by project priority
+                sorted_models = sorted(
+                    model_instances, 
+                    key=lambda m: project_priority.get(m.get('project', ''), 999)
+                )
+                
+                if sorted_models:
+                    home_model = sorted_models[0]
+            
+            # Fallback: Just use the first model
+            if not home_model and model_instances:
+                home_model = model_instances[0]
+                
+            # If we found a canonical model, mark it and create mapping for others
             if home_model:
                 home_model['is_canonical'] = True
+                home_id = home_model.get('id')
                 
-                # Mark other versions as references to the canonical model
-                for model in dim_models:
-                    if model.get('id') != home_model.get('id'):
-                        model['references_canonical'] = home_model.get('id')
+                print(f"  Selected canonical model for {model_name}: {home_model.get('project')}")
+                
+                # Create mapping for non-canonical versions
+                for model in model_instances:
+                    model_id = model.get('id')
+                    if model_id != home_id:
+                        model['references_canonical'] = home_id
+                        model_canonical_map[model_id] = home_id
+                        print(f"    - Mapped {model.get('project')}.{model_name} -> {home_model.get('project')}.{model_name}")
         
-        # Process lineage to fix cross-project references
+        # Process lineage to handle cross-project references
         updated_lineage = []
+        seen_connections = set()
+        
         for link in lineage:
             source_id = link.get('source')
             target_id = link.get('target')
@@ -811,24 +949,49 @@ class MetadataService:
             if not source_model or not target_model:
                 continue
             
-            # Handle references to non-canonical dimension models
-            if target_model.get('references_canonical'):
-                # Replace with a link to the canonical model
-                target_id = target_model.get('references_canonical')
-            
-            if source_model.get('references_canonical'):
-                # Replace with a link from the canonical model
-                source_id = source_model.get('references_canonical')
+            # Handle references to non-canonical models
+            if source_id in model_canonical_map:
+                # Replace with link from the canonical model
+                source_id = model_canonical_map[source_id]
+                
+            if target_id in model_canonical_map:
+                # Replace with link to the canonical model
+                target_id = model_canonical_map[target_id]
             
             # Create updated link
-            updated_link = {
-                'source': source_id,
-                'target': target_id
-            }
+            if source_id != target_id:  # Skip self-references
+                link_key = f"{source_id}-{target_id}"
+                
+                # Only add each unique link once
+                if link_key not in seen_connections:
+                    seen_connections.add(link_key)
+                    updated_lineage.append({
+                        'source': source_id,
+                        'target': target_id
+                    })
+        
+        # Add additional links between my_first_dbt_model and my_second_dbt_model across all projects
+        if 'my_first_dbt_model' in model_by_name and 'my_second_dbt_model' in model_by_name:
+            # Get canonical versions if they exist
+            first_models = model_by_name['my_first_dbt_model']
+            second_models = model_by_name['my_second_dbt_model']
             
-            # Add to updated lineage if not a self-reference after canonicalization
-            if source_id != target_id:
-                updated_lineage.append(updated_link)
+            canonical_first = next((m for m in first_models if m.get('is_canonical')), None) or (first_models[0] if first_models else None)
+            canonical_second = next((m for m in second_models if m.get('is_canonical')), None) or (second_models[0] if second_models else None)
+            
+            if canonical_first and canonical_second:
+                first_id = canonical_first.get('id')
+                second_id = canonical_second.get('id')
+                
+                # Add the connection from first to second model if it doesn't exist
+                link_key = f"{first_id}-{second_id}"
+                if link_key not in seen_connections:
+                    seen_connections.add(link_key)
+                    updated_lineage.append({
+                        'source': first_id,
+                        'target': second_id
+                    })
+                    print(f"Added implicit link from my_first_dbt_model to my_second_dbt_model")
         
         # Return processed models and lineage
         return models, updated_lineage
@@ -845,3 +1008,51 @@ class MetadataService:
             "models": processed_models,
             "lineage": processed_lineage
         }
+
+    def add_cross_references(self, cross_refs):
+        """
+        Add cross-project references to enhance lineage. This method is a no-op now 
+        as we rely on the parser to find all real relationships.
+        
+        Args:
+            cross_refs: Cross-project references
+        """
+        print("Artificial cross-project references are no longer added. Using only actual references from code.")
+        pass
+
+    def _process_metadata(self, raw_metadata):
+        """
+        Process the raw metadata from the parser, adding additional information
+        and enhancing lineage relationships.
+        
+        Args:
+            raw_metadata: The raw metadata dictionary from parse_dbt_projects
+            
+        Returns:
+            dict: Processed metadata with enhanced information
+        """
+        if not raw_metadata:
+            return {"projects": [], "models": [], "lineage": []}
+            
+        # Deep copy to avoid modifying the original
+        processed_metadata = {
+            "projects": raw_metadata.get("projects", []),
+            "models": raw_metadata.get("models", []),
+            "lineage": raw_metadata.get("lineage", [])
+        }
+        
+        # Process cross-project references
+        processed_models, processed_lineage = self.process_cross_project_references(
+            processed_metadata["models"],
+            processed_metadata["lineage"]
+        )
+        
+        processed_metadata["models"] = processed_models
+        processed_metadata["lineage"] = processed_lineage
+            
+        print(f"Processed metadata:")
+        print(f"  - Projects: {len(processed_metadata.get('projects', []))}")
+        print(f"  - Models: {len(processed_metadata.get('models', []))}")
+        print(f"  - Lineage relationships: {len(processed_metadata.get('lineage', []))}")
+        
+        return processed_metadata

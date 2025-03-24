@@ -317,7 +317,7 @@ def refresh_metadata(projects_dir: str = "dbt_projects_2", output_dir: str = Non
                 print("This might indicate an issue with the manifest files or the parsing logic.")
         
         # Save the metadata
-        save_metadata(metadata, output_file)
+        save_metadata(metadata, output_dir)
         
         print(f"\nMetadata refresh completed successfully:")
         print(f"- Projects: {len(metadata.get('projects', []))}")
@@ -331,32 +331,72 @@ def refresh_metadata(projects_dir: str = "dbt_projects_2", output_dir: str = Non
         return False
 
 
-def refresh_using_service() -> bool:
+def refresh_using_service(projects_dir=None, output_dir=None, cross_refs=None):
     """
-    Alternative approach: Use the MetadataService to refresh metadata
-    
-    Returns:
-        bool: True if refresh was successful, False otherwise
+    Refresh metadata using the MetadataService which handles all the processing.
+    This is the preferred method as it uses the full service capabilities.
     """
     try:
-        print("\n=== Starting metadata refresh using MetadataService ===")
+        from backend.services.metadata_service import MetadataService
         
-        # Initialize the metadata service (which will use dbt_projects_2 by default)
-        metadata_service = MetadataService()
+        # Configure the service with appropriate directories
+        service = MetadataService(
+            dbt_projects_dir=projects_dir,
+            output_dir=output_dir
+        )
         
-        # Refresh the metadata
-        success = metadata_service.refresh()
+        # If we have cross-references, add them to the service
+        if cross_refs:
+            print(f"Adding {len(cross_refs)} cross-project references to enhance lineage")
+            service.add_cross_references(cross_refs)
         
-        if success:
-            print("Metadata refresh completed successfully using MetadataService")
+        # Perform refresh
+        result = service.refresh()
+        
+        if result:
+            print(f"✅ Metadata refresh completed successfully using service")
+            print(f"Output saved to: {service.unified_metadata_path}")
+            return True
         else:
-            print("Metadata refresh failed using MetadataService")
+            print(f"❌ Metadata refresh failed")
+            return False
             
-        return success
-        
     except Exception as e:
-        print(f"Error refreshing metadata using service: {str(e)}")
+        print(f"❌ Error using MetadataService: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
+
+
+def save_metadata(metadata, output_dir):
+    """Save metadata to the output directory"""
+    # Make output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save the full unified metadata
+    output_file = os.path.join(output_dir, "uni_metadata.json")
+    with open(output_file, 'w') as f:  # Use 'w' mode to overwrite existing file
+        json.dump(metadata, f, indent=2)
+    print(f"Saved metadata to {output_file}")
+    
+    # Save individual metadata files for frontend
+    projects_file = os.path.join(output_dir, "projects.json")
+    models_file = os.path.join(output_dir, "models.json")
+    lineage_file = os.path.join(output_dir, "lineage.json")
+    
+    with open(projects_file, 'w') as f:
+        json.dump(metadata.get("projects", []), f, indent=2)
+    print(f"Saved projects to {projects_file}")
+    
+    with open(models_file, 'w') as f:
+        json.dump(metadata.get("models", []), f, indent=2)
+    print(f"Saved models to {models_file}")
+    
+    with open(lineage_file, 'w') as f:
+        json.dump(metadata.get("lineage", []), f, indent=2)
+    print(f"Saved lineage to {lineage_file}")
+    
+    return True
 
 
 if __name__ == "__main__":

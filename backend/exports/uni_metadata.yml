@@ -1,0 +1,585 @@
+lineage:
+- ref_type: ref
+  source: analytics_project_my_first_dbt_model
+  target: analytics_project_my_second_dbt_model
+- ref_type: ref
+  source: ecommerce_project_my_first_dbt_model
+  target: ecommerce_project_my_second_dbt_model
+- ref_type: ref
+  source: my_test_project_my_first_dbt_model
+  target: my_test_project_my_second_dbt_model
+- ref_type: direct_reference
+  source: my_test_project_raw_campaigns
+  target: my_test_project_stg_campaigns
+- ref_type: direct_reference
+  source: my_test_project_raw_orders
+  target: my_test_project_stg_orders
+- ref_type: cross_project_source
+  source: ecommerce_project_stg_orders
+  target: analytics_project_analytics_orders
+- ref_type: cross_project_source
+  source: my_test_project_my_first_dbt_model
+  target: analytics_project_analytics_orders
+models:
+- columns:
+  - description: ''
+    name: order_id
+    type: integer
+  - ai_description: The `customer_id` column in the `analytics_orders` table stores
+      the unique identifier for a customer associated with an order. This integer
+      value links orders from both ecommerce and test project datasets, enabling analysis
+      of customer behavior across different platforms. It is used as a key to join
+      the `ecommerce_orders` and `test_project_data` tables.
+    description: The `customer_id` column in the `analytics_orders` table stores the
+      unique identifier for a customer associated with an order. This integer value
+      links orders from both ecommerce and test project datasets, enabling analysis
+      of customer behavior across different platforms. It is used as a key to join
+      the `ecommerce_orders` and `test_project_data` tables.
+    name: customer_id
+    type: integer
+    user_edited: false
+  - ai_description: This column, `test_project_id`, stores the integer identifier
+      associated with a test project. It links each order in the `analytics_orders`
+      table to a specific test project, enabling analysis of order performance within
+      the context of these projects. This is derived from the `td.id` field in the
+      SQL context, likely representing a unique project identifier.
+    description: This column, `test_project_id`, stores the integer identifier associated
+      with a test project. It links each order in the `analytics_orders` table to
+      a specific test project, enabling analysis of order performance within the context
+      of these projects. This is derived from the `td.id` field in the SQL context,
+      likely representing a unique project identifier.
+    name: test_project_id
+    type: integer
+    user_edited: false
+  - ai_description: '`some_metric` represents a numeric value, likely an amount, associated
+      with either an ecommerce order or a test project. In the `analytics_orders`
+      table, this column aggregates order amounts from ecommerce and test project
+      datasets, allowing for combined analysis of spending or value. The source of
+      this metric is either the `amount` from the `test_project_data` table or the
+      implicit order amount from the `ecommerce_orders` table.'
+    description: '`some_metric` represents a numeric value, likely an amount, associated
+      with either an ecommerce order or a test project. In the `analytics_orders`
+      table, this column aggregates order amounts from ecommerce and test project
+      datasets, allowing for combined analysis of spending or value. The source of
+      this metric is either the `amount` from the `test_project_data` table or the
+      implicit order amount from the `ecommerce_orders` table.'
+    name: some_metric
+    type: numeric
+    user_edited: false
+  description: Aggregated order data combining ecommerce and test project datasets.
+  file_path: models\example\analytics_orders.sql
+  id: analytics_project_analytics_orders
+  materialized: view
+  name: analytics_orders
+  project: analytics_project
+  schema: analytics_schema_analytics_schema
+  sql: "{{ config(\r\n    materialized='view',\r\n    schema='analytics_schema'\r\n\
+    ) }}\r\n\r\nWITH ecommerce_orders AS (\r\n    -- Use source() to reference ecommerce\
+    \ models\r\n    SELECT * FROM {{ source('ecommerce_models', 'stg_orders') }}\r\
+    \n),\r\ntest_project_data AS (\r\n    -- Use source() to reference test project\
+    \ models\r\n    SELECT * FROM {{ source('test_project_models', 'my_first_dbt_model')\
+    \ }}\r\n)\r\n\r\nSELECT\r\n    eo.order_id,\r\n    eo.customer_id,\r\n    td.id\
+    \ as test_project_id,\r\n    td.amount as some_metric\r\nFROM ecommerce_orders\
+    \ eo\r\nLEFT JOIN test_project_data td\r\nON eo.customer_id = td.order_id"
+- ai_description: This dbt model, `my_first_dbt_model`, within the `analytics_project`,
+    serves as a foundational example demonstrating basic dbt functionality. It generates
+    a table containing a single column, `id`, which holds integer values. The model's
+    SQL code creates a simple source data set with a single record containing the
+    value 1 and a record with a null value. This model is a starting point for building
+    more complex transformations and is configured to materialize as a table, storing
+    the results in the data warehouse. The SQL code includes a commented-out filter
+    to remove null `id` values, showcasing how to apply basic data cleaning within
+    a dbt model.
+  columns:
+  - ai_description: The `id` column stores integer values, representing a unique identifier
+      within this foundational dbt model.  It contains a single record with the value
+      1 and a record with a null value, demonstrating the model's ability to handle
+      basic data.  This column serves as a simple example for data manipulation and
+      is intended to be a starting point for more complex transformations.
+    description: The `id` column stores integer values, representing a unique identifier
+      within this foundational dbt model.  It contains a single record with the value
+      1 and a record with a null value, demonstrating the model's ability to handle
+      basic data.  This column serves as a simple example for data manipulation and
+      is intended to be a starting point for more complex transformations.
+    name: id
+    type: integer
+    user_edited: false
+  description: This dbt model, `my_first_dbt_model`, within the `analytics_project`,
+    serves as a foundational example demonstrating basic dbt functionality. It generates
+    a table containing a single column, `id`, which holds integer values. The model's
+    SQL code creates a simple source data set with a single record containing the
+    value 1 and a record with a null value. This model is a starting point for building
+    more complex transformations and is configured to materialize as a table, storing
+    the results in the data warehouse. The SQL code includes a commented-out filter
+    to remove null `id` values, showcasing how to apply basic data cleaning within
+    a dbt model.
+  file_path: models\example\my_first_dbt_model.sql
+  id: analytics_project_my_first_dbt_model
+  materialized: table
+  name: my_first_dbt_model
+  project: analytics_project
+  schema: analytics_schema
+  sql: "/*\n    Welcome to your first dbt model!\n    Did you know that you can also\
+    \ configure models directly within SQL files?\n    This will override configurations\
+    \ stated in dbt_project.yml\n\n    Try changing \"table\" to \"view\" below\n\
+    */\n\n{{ config(materialized='table') }}\n\nwith source_data as (\n\n    select\
+    \ 1 as id\n    union all\n    select null as id\n\n)\n\nselect *\nfrom source_data\n\
+    \n/*\n    Uncomment the line below to remove records with null `id` values\n*/\n\
+    \n-- where id is not null"
+  user_edited: false
+- ai_description: 'Here''s a description of the `my_second_dbt_model` dbt model:
+
+
+    This dbt model, part of the `analytics_project`, filters data from the `my_first_dbt_model`.
+    It selects all columns from the `my_first_dbt_model` where the `id` column equals
+    1. This model produces a subset of the data from `my_first_dbt_model`, focusing
+    on a specific record. Its role in the data pipeline is to provide a filtered view
+    of the initial data, likely for a specific analysis or reporting need. The primary
+    transformation is a simple `WHERE` clause filtering based on the `id` column.'
+  columns:
+  - ai_description: This column contains the unique identifier for each record, inherited
+      from the `my_first_dbt_model`.  In this model, the `id` column is used to filter
+      the data, selecting only the record with an `id` value of 1. This allows for
+      focused analysis on a specific record within the dataset.
+    description: This column contains the unique identifier for each record, inherited
+      from the `my_first_dbt_model`.  In this model, the `id` column is used to filter
+      the data, selecting only the record with an `id` value of 1. This allows for
+      focused analysis on a specific record within the dataset.
+    name: id
+    type: integer
+    user_edited: false
+  description: 'Here''s a description of the `my_second_dbt_model` dbt model:
+
+
+    This dbt model, part of the `analytics_project`, filters data from the `my_first_dbt_model`.
+    It selects all columns from the `my_first_dbt_model` where the `id` column equals
+    1. This model produces a subset of the data from `my_first_dbt_model`, focusing
+    on a specific record. Its role in the data pipeline is to provide a filtered view
+    of the initial data, likely for a specific analysis or reporting need. The primary
+    transformation is a simple `WHERE` clause filtering based on the `id` column.'
+  file_path: models\example\my_second_dbt_model.sql
+  id: analytics_project_my_second_dbt_model
+  materialized: view
+  name: my_second_dbt_model
+  project: analytics_project
+  schema: analytics_schema
+  sql: '-- Use the `ref` function to select from other models
+
+
+    select *
+
+    from {{ ref(''my_first_dbt_model'') }}
+
+    where id = 1'
+  user_edited: false
+- columns:
+  - ai_description: The `id` column stores integer values representing unique identifiers
+      for each record in the `my_first_dbt_model` table.  This column serves as a
+      primary key, allowing for the distinct identification of each row within the
+      model.  The provided SQL context suggests this column is used to demonstrate
+      basic data selection and filtering within a dbt model.
+    description: The `id` column stores integer values representing unique identifiers
+      for each record in the `my_first_dbt_model` table.  This column serves as a
+      primary key, allowing for the distinct identification of each row within the
+      model.  The provided SQL context suggests this column is used to demonstrate
+      basic data selection and filtering within a dbt model.
+    name: id
+    type: integer
+    user_edited: false
+  description: A starter dbt model
+  file_path: models\example\my_first_dbt_model.sql
+  id: ecommerce_project_my_first_dbt_model
+  materialized: table
+  name: my_first_dbt_model
+  project: ecommerce_project
+  schema: ecommerce
+  sql: "/*\n    Welcome to your first dbt model!\n    Did you know that you can also\
+    \ configure models directly within SQL files?\n    This will override configurations\
+    \ stated in dbt_project.yml\n\n    Try changing \"table\" to \"view\" below\n\
+    */\n\n{{ config(materialized='table') }}\n\nwith source_data as (\n\n    select\
+    \ 1 as id\n    union all\n    select null as id\n\n)\n\nselect *\nfrom source_data\n\
+    \n/*\n    Uncomment the line below to remove records with null `id` values\n*/\n\
+    \n-- where id is not null"
+- columns:
+  - ai_description: The `id` column stores an integer representing a unique identifier.
+      In this model, it likely serves as a primary key, allowing for the selection
+      and filtering of specific records from the `my_first_dbt_model` table. This
+      column is used to join or filter data based on a specific ID value.
+    description: The `id` column stores an integer representing a unique identifier.
+      In this model, it likely serves as a primary key, allowing for the selection
+      and filtering of specific records from the `my_first_dbt_model` table. This
+      column is used to join or filter data based on a specific ID value.
+    name: id
+    type: integer
+    user_edited: false
+  description: A starter dbt model
+  file_path: models\example\my_second_dbt_model.sql
+  id: ecommerce_project_my_second_dbt_model
+  materialized: view
+  name: my_second_dbt_model
+  project: ecommerce_project
+  schema: ecommerce
+  sql: '-- Use the `ref` function to select from other models
+
+
+    select *
+
+    from {{ ref(''my_first_dbt_model'') }}
+
+    where id = 1'
+- columns:
+  - ai_description: '`order_id`: This integer column uniquely identifies each individual
+      order within the `stg_orders` staging model. It serves as the primary key, enabling
+      the linking and tracking of order-specific information sourced from the raw
+      orders data. This ID is crucial for analyzing order performance and customer
+      behavior.'
+    description: '`order_id`: This integer column uniquely identifies each individual
+      order within the `stg_orders` staging model. It serves as the primary key, enabling
+      the linking and tracking of order-specific information sourced from the raw
+      orders data. This ID is crucial for analyzing order performance and customer
+      behavior.'
+    name: order_id
+    type: integer
+    user_edited: false
+  - ai_description: This column, `customer_id`, stores the unique identifier for the
+      customer associated with each order.  Within the `stg_orders` staging model,
+      this integer value links each order to a specific customer, enabling analysis
+      of customer purchasing behavior.  It is directly sourced from the raw orders
+      data.
+    description: This column, `customer_id`, stores the unique identifier for the
+      customer associated with each order.  Within the `stg_orders` staging model,
+      this integer value links each order to a specific customer, enabling analysis
+      of customer purchasing behavior.  It is directly sourced from the raw orders
+      data.
+    name: customer_id
+    type: integer
+    user_edited: false
+  - ai_description: The `order_date` column in the `stg_orders` staging model stores
+      the date when an order was placed. This date is extracted from the raw orders
+      data and is crucial for analyzing order trends, calculating order lifecycles,
+      and performing time-based aggregations within the e-commerce domain.
+    description: The `order_date` column in the `stg_orders` staging model stores
+      the date when an order was placed. This date is extracted from the raw orders
+      data and is crucial for analyzing order trends, calculating order lifecycles,
+      and performing time-based aggregations within the e-commerce domain.
+    name: order_date
+    type: date
+    user_edited: false
+  - ai_description: The `status` column in the `stg_orders` table stores the current
+      order status, such as "pending," "shipped," or "delivered." This column is crucial
+      for tracking the lifecycle of each order within the staging model, allowing
+      for analysis of order fulfillment and potential bottlenecks. The values likely
+      reflect the order's progression through the e-commerce process.
+    description: The `status` column in the `stg_orders` table stores the current
+      order status, such as "pending," "shipped," or "delivered." This column is crucial
+      for tracking the lifecycle of each order within the staging model, allowing
+      for analysis of order fulfillment and potential bottlenecks. The values likely
+      reflect the order's progression through the e-commerce process.
+    name: status
+    type: character varying(20)
+    user_edited: false
+  description: Staging model for raw orders data in the e-commerce domain.
+  file_path: models\example\stg_orders.sql
+  id: ecommerce_project_stg_orders
+  materialized: view
+  name: stg_orders
+  project: ecommerce_project
+  schema: ecommerce_ecommerce_schema
+  sql: "{{ config(\r\n    materialized='view',\r\n    schema='ecommerce_schema',\r\
+    \n    alias='stg_orders'\r\n) }}\r\n\r\nSELECT\r\n    order_id,\r\n    customer_id,\r\
+    \n    order_date,\r\n    status\r\nFROM {{ source('ecommerce_source', 'raw_orders')\
+    \ }}"
+- columns:
+  - ai_description: This column, `id`, stores the unique integer identifier for each
+      transaction. It serves as the primary key for the `my_first_dbt_model` table,
+      enabling the identification and tracking of individual transactions within the
+      dataset.  This ID is derived from the `transaction_id` column in the source
+      data.
+    description: This column, `id`, stores the unique integer identifier for each
+      transaction. It serves as the primary key for the `my_first_dbt_model` table,
+      enabling the identification and tracking of individual transactions within the
+      dataset.  This ID is derived from the `transaction_id` column in the source
+      data.
+    name: id
+    type: integer
+    user_edited: false
+  - ai_description: This column, `order_id`, stores the unique identifier associated
+      with each order. It's used to link individual transactions to their respective
+      orders within the `my_first_dbt_model`. This allows for analysis of order-level
+      metrics by aggregating transaction data.
+    description: This column, `order_id`, stores the unique identifier associated
+      with each order. It's used to link individual transactions to their respective
+      orders within the `my_first_dbt_model`. This allows for analysis of order-level
+      metrics by aggregating transaction data.
+    name: order_id
+    type: integer
+    user_edited: false
+  - ai_description: The `amount` column stores the monetary value of each transaction.
+      This numeric value represents the financial value associated with each transaction,
+      likely used for calculating total revenue, order values, or other financial
+      metrics within the `my_first_dbt_model`.
+    description: The `amount` column stores the monetary value of each transaction.
+      This numeric value represents the financial value associated with each transaction,
+      likely used for calculating total revenue, order values, or other financial
+      metrics within the `my_first_dbt_model`.
+    name: amount
+    type: numeric
+    user_edited: false
+  - ai_description: This column, `transaction_date`, stores the date when a transaction
+      occurred. It's used to track the timing of each transaction, enabling analysis
+      of trends and performance over time. This date is extracted from the raw transactions
+      data.
+    description: This column, `transaction_date`, stores the date when a transaction
+      occurred. It's used to track the timing of each transaction, enabling analysis
+      of trends and performance over time. This date is extracted from the raw transactions
+      data.
+    name: transaction_date
+    type: date
+    user_edited: false
+  description: A starter dbt model
+  file_path: models\example\my_first_dbt_model.sql
+  id: my_test_project_my_first_dbt_model
+  materialized: table
+  name: my_first_dbt_model
+  project: my_test_project
+  schema: my_test_my_test
+  sql: "{{ config(\n    materialized='table',\n    schema='my_test',\n    alias='my_first_dbt_model'\n\
+    ) }}\n\nSELECT\n    transaction_id as id,\n    order_id,\n    amount,\n    transaction_date\n\
+    FROM {{ source('my_test_project', 'raw_transactions') }}\nWHERE transaction_id\
+    \ IS NOT NULL"
+- columns:
+  - ai_description: The `id` column stores integer values, likely representing a unique
+      identifier for each record in the `my_second_dbt_model` table. This column is
+      used for joining and filtering data, as demonstrated by the `WHERE` clause in
+      the SQL context, allowing for specific record selection. While no business logic
+      is directly apparent, the `id` suggests a primary key or unique identifier for
+      the model's underlying data.
+    description: The `id` column stores integer values, likely representing a unique
+      identifier for each record in the `my_second_dbt_model` table. This column is
+      used for joining and filtering data, as demonstrated by the `WHERE` clause in
+      the SQL context, allowing for specific record selection. While no business logic
+      is directly apparent, the `id` suggests a primary key or unique identifier for
+      the model's underlying data.
+    name: id
+    type: integer
+    user_edited: false
+  - ai_description: The `order_id` column stores a unique integer identifier for each
+      order within the `my_second_dbt_model`. This column serves as a primary key,
+      enabling the linking of order-specific information from other models, as demonstrated
+      by the SQL context. It's crucial for tracking and analyzing individual orders
+      within the dataset.
+    description: The `order_id` column stores a unique integer identifier for each
+      order within the `my_second_dbt_model`. This column serves as a primary key,
+      enabling the linking of order-specific information from other models, as demonstrated
+      by the SQL context. It's crucial for tracking and analyzing individual orders
+      within the dataset.
+    name: order_id
+    type: integer
+    user_edited: false
+  - ai_description: The `amount` column in the `my_second_dbt_model` table, a starter
+      dbt model, stores a numeric value. This column likely represents a monetary
+      value or quantity associated with a record from the `my_first_dbt_model` table,
+      potentially indicating a transaction amount or a related measurement.  Its specific
+      meaning depends on the underlying data in `my_first_dbt_model`.
+    description: The `amount` column in the `my_second_dbt_model` table, a starter
+      dbt model, stores a numeric value. This column likely represents a monetary
+      value or quantity associated with a record from the `my_first_dbt_model` table,
+      potentially indicating a transaction amount or a related measurement.  Its specific
+      meaning depends on the underlying data in `my_first_dbt_model`.
+    name: amount
+    type: numeric
+    user_edited: false
+  - ai_description: This column, `transaction_date`, stores the date associated with
+      each transaction. It's used to filter and analyze transactions within the `my_second_dbt_model`,
+      likely enabling time-based reporting and trend analysis.  The data type `date`
+      suggests this column will be used for date-specific aggregations and comparisons.
+    description: This column, `transaction_date`, stores the date associated with
+      each transaction. It's used to filter and analyze transactions within the `my_second_dbt_model`,
+      likely enabling time-based reporting and trend analysis.  The data type `date`
+      suggests this column will be used for date-specific aggregations and comparisons.
+    name: transaction_date
+    type: date
+    user_edited: false
+  description: A starter dbt model
+  file_path: models\example\my_second_dbt_model.sql
+  id: my_test_project_my_second_dbt_model
+  materialized: view
+  name: my_second_dbt_model
+  project: my_test_project
+  schema: my_test
+  sql: '-- Use the `ref` function to select from other models
+
+
+    select *
+
+    from {{ ref(''my_first_dbt_model'') }}
+
+    where id = 1'
+- ai_description: The `stg_campaigns` dbt model in the `my_test_project` project serves
+    as a staging layer for campaign data. It selects and transforms data from the
+    `public.raw_campaigns` source, renaming and casting columns for consistency. This
+    model produces a clean, standardized table containing campaign identifiers, names,
+    start and end dates, and budgets. It acts as an intermediary step in the data
+    pipeline, preparing raw campaign data for further analysis and aggregation in
+    downstream models. No complex transformations or business logic are applied in
+    this model; it focuses on basic data cleaning and column selection.
+  columns:
+  - ai_description: This column stores the unique integer identifier for each marketing
+      campaign.  In the `stg_campaigns` model, `campaign_id` is a key field used to
+      identify and link campaign data from the raw source, ensuring consistent tracking
+      across the data pipeline.  It serves as a primary key for the campaign table.
+    description: This column stores the unique integer identifier for each marketing
+      campaign.  In the `stg_campaigns` model, `campaign_id` is a key field used to
+      identify and link campaign data from the raw source, ensuring consistent tracking
+      across the data pipeline.  It serves as a primary key for the campaign table.
+    name: campaign_id
+    type: integer
+    user_edited: false
+  - ai_description: This column stores the name of the marketing campaign.  It's used
+      in the `stg_campaigns` model to provide a human-readable identifier for each
+      campaign, sourced directly from the raw campaign data.  No calculations or business
+      logic are applied to this field within this staging model.
+    description: This column stores the name of the marketing campaign.  It's used
+      in the `stg_campaigns` model to provide a human-readable identifier for each
+      campaign, sourced directly from the raw campaign data.  No calculations or business
+      logic are applied to this field within this staging model.
+    name: campaign_name
+    type: character varying(100)
+    user_edited: false
+  - ai_description: This column stores the campaign's start date, extracted directly
+      from the `public.raw_campaigns` source.  It represents the date when the campaign
+      officially began, providing a key dimension for analyzing campaign performance
+      over time.  No calculations are performed on this date within this staging model.
+    description: This column stores the campaign's start date, extracted directly
+      from the `public.raw_campaigns` source.  It represents the date when the campaign
+      officially began, providing a key dimension for analyzing campaign performance
+      over time.  No calculations are performed on this date within this staging model.
+    name: start_date
+    type: date
+    user_edited: false
+  - ai_description: This column, `end_date`, stores the date when a campaign concludes.
+      Within the `stg_campaigns` model, it represents the campaign's end date as extracted
+      directly from the `public.raw_campaigns` source. This date is crucial for understanding
+      the duration and lifecycle of each campaign.
+    description: This column, `end_date`, stores the date when a campaign concludes.
+      Within the `stg_campaigns` model, it represents the campaign's end date as extracted
+      directly from the `public.raw_campaigns` source. This date is crucial for understanding
+      the duration and lifecycle of each campaign.
+    name: end_date
+    type: date
+    user_edited: false
+  - ai_description: The `budget` column in the `stg_campaigns` table stores the numerical
+      budget allocated to each marketing campaign. This column, sourced directly from
+      the raw campaign data, provides the financial resources assigned to each campaign
+      within the staging layer. No calculations are performed on this value within
+      this model; it's a direct representation of the campaign's budget.
+    description: The `budget` column in the `stg_campaigns` table stores the numerical
+      budget allocated to each marketing campaign. This column, sourced directly from
+      the raw campaign data, provides the financial resources assigned to each campaign
+      within the staging layer. No calculations are performed on this value within
+      this model; it's a direct representation of the campaign's budget.
+    name: budget
+    type: numeric
+    user_edited: false
+  description: The `stg_campaigns` dbt model in the `my_test_project` project serves
+    as a staging layer for campaign data. It selects and transforms data from the
+    `public.raw_campaigns` source, renaming and casting columns for consistency. This
+    model produces a clean, standardized table containing campaign identifiers, names,
+    start and end dates, and budgets. It acts as an intermediary step in the data
+    pipeline, preparing raw campaign data for further analysis and aggregation in
+    downstream models. No complex transformations or business logic are applied in
+    this model; it focuses on basic data cleaning and column selection.
+  file_path: models\example\stg_campaigns.sql
+  id: my_test_project_stg_campaigns
+  materialized: view
+  name: stg_campaigns
+  project: my_test_project
+  schema: my_test
+  sql: "-- models/example/stg_campaigns.sql\r\nSELECT\r\n    campaign_id,\r\n    campaign_name,\r\
+    \n    start_date,\r\n    end_date,\r\n    budget\r\nFROM public.raw_campaigns"
+  user_edited: false
+- columns:
+  - ai_description: This column, `order_id`, stores a unique integer identifier for
+      each order in the `stg_orders` staging model. It's directly sourced from the
+      `raw_orders` table and serves as the primary key, enabling the identification
+      and tracking of individual orders within the data pipeline. This ID is crucial
+      for joining with other tables and analyzing order-level details.
+    description: This column, `order_id`, stores a unique integer identifier for each
+      order in the `stg_orders` staging model. It's directly sourced from the `raw_orders`
+      table and serves as the primary key, enabling the identification and tracking
+      of individual orders within the data pipeline. This ID is crucial for joining
+      with other tables and analyzing order-level details.
+    name: order_id
+    type: integer
+    user_edited: false
+  - ai_description: This column contains the unique identifier for the customer associated
+      with each order. In the `stg_orders` staging model, `customer_id` is used to
+      link orders to specific customers, enabling analysis of customer purchasing
+      behavior. This integer value is directly sourced from the raw orders data.
+    description: This column contains the unique identifier for the customer associated
+      with each order. In the `stg_orders` staging model, `customer_id` is used to
+      link orders to specific customers, enabling analysis of customer purchasing
+      behavior. This integer value is directly sourced from the raw orders data.
+    name: customer_id
+    type: integer
+    user_edited: false
+  - ai_description: This column, `order_date`, stores the date when an order was placed.
+      In the `stg_orders` staging model, this date is extracted directly from the
+      raw orders data. This column is crucial for time-based analysis, such as tracking
+      order trends over time.
+    description: This column, `order_date`, stores the date when an order was placed.
+      In the `stg_orders` staging model, this date is extracted directly from the
+      raw orders data. This column is crucial for time-based analysis, such as tracking
+      order trends over time.
+    name: order_date
+    type: date
+    user_edited: false
+  - ai_description: The `status` column in the `stg_orders` staging model stores the
+      order status, such as "shipped" or "pending," as extracted from the raw orders
+      data. This column is crucial for understanding the current state of each order
+      within the staging layer, enabling analysis of order fulfillment and potential
+      issues. The values are expected to be a string of up to 20 characters.
+    description: The `status` column in the `stg_orders` staging model stores the
+      order status, such as "shipped" or "pending," as extracted from the raw orders
+      data. This column is crucial for understanding the current state of each order
+      within the staging layer, enabling analysis of order fulfillment and potential
+      issues. The values are expected to be a string of up to 20 characters.
+    name: status
+    type: character varying(20)
+    user_edited: false
+  description: Staging model for raw orders data
+  file_path: models\example\stg_orders.sql
+  id: my_test_project_stg_orders
+  materialized: view
+  name: stg_orders
+  project: my_test_project
+  schema: my_test
+  sql: "-- models/stg_orders.sql\r\nSELECT\r\n    order_id,\r\n    customer_id,\r\n\
+    \    order_date,\r\n    status\r\nFROM public.raw_orders"
+- description: Direct reference table raw_orders in schema public
+  id: my_test_project_raw_orders
+  is_source: true
+  materialized: source
+  name: raw_orders
+  project: my_test_project
+  schema: public
+- description: Direct reference table raw_campaigns in schema public
+  id: my_test_project_raw_campaigns
+  is_source: true
+  materialized: source
+  name: raw_campaigns
+  project: my_test_project
+  schema: public
+projects:
+- description: analytics_project dbt project
+  id: analytics_project
+  name: analytics_project
+  path: C:/Users/karak/OneDrive/Desktop/final_dbt/dbt/dbt_pk/dbt\analytics_project
+- description: ecommerce_project dbt project
+  id: ecommerce_project
+  name: ecommerce_project
+  path: C:/Users/karak/OneDrive/Desktop/final_dbt/dbt/dbt_pk/dbt\ecommerce_project
+- description: my_test_project dbt project
+  id: my_test_project
+  name: my_test_project
+  path: C:/Users/karak/OneDrive/Desktop/final_dbt/dbt/dbt_pk/dbt\my_test_project

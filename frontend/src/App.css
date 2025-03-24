@@ -93,12 +93,36 @@
 }
 
 .app-header {
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+}
+
+.header-container {
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 16px;
+  height: 100%;
+}
+
+.logo {
+  flex: 0 0 auto;
+  margin-right: 24px;
+}
+
+.navigation {
+  flex: 1 1 auto;
+}
+
+.header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
 
 .app-content {
@@ -107,6 +131,7 @@
   background: #fff;
   border-radius: 4px;
   min-height: 280px;
+  margin-top: 64px; /* Space for fixed header */
 }
 
 .logo {
@@ -343,23 +368,6 @@ footer {
   min-height: 100vh;
 }
 
-.app-header {
-  padding: 0;
-  position: fixed;
-  z-index: 1000;
-  width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.header-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
 .logo {
   color: white;
   font-size: 18px;
@@ -384,11 +392,6 @@ footer {
   padding: 0 16px;
 }
 
-.app-content {
-  padding: 24px;
-  margin-top: 64px; /* Add this to offset the fixed header */
-}
-
 .content-container {
   background: white;
   padding: 24px;
@@ -401,9 +404,14 @@ footer {
 
 .app-footer {
   text-align: center;
+  padding: 16px;
   background: #001529;
   color: rgba(255, 255, 255, 0.65);
-  padding: 16px;
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* Loading and error styles */
@@ -628,34 +636,31 @@ th {
 @media (max-width: 768px) {
   .header-container {
     flex-direction: column;
+    height: auto;
     padding: 8px 16px;
   }
   
   .logo {
-    height: 40px;
+    margin-right: 0;
     margin-bottom: 8px;
   }
   
-  .ant-menu-horizontal {
-    line-height: 40px;
+  .navigation {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
   }
   
   .app-content {
-    margin-top: 104px; /* account for taller header on mobile */
+    margin-top: 120px; /* Increased space for multi-line header */
+    margin-left: 8px;
+    margin-right: 8px;
     padding: 16px;
-  }
-  
-  .content-container {
-    padding: 16px;
-  }
-  
-  .stats-row {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .projects-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1030,4 +1035,22 @@ th {
 /* Add some margin to the search component */
 .advanced-search {
   margin-bottom: 20px;
+}
+
+/* Menu item styling */
+.ant-menu-horizontal > .ant-menu-item {
+  font-weight: 500;
+  margin: 0 8px;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover,
+.ant-menu-horizontal > .ant-menu-item-selected {
+  border-bottom: 2px solid #1890ff;
+  color: #1890ff;
+}
+
+/* Button styling */
+.header-actions .ant-btn {
+  height: 32px;
+  border-radius: 4px;
 } 

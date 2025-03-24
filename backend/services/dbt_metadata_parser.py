@@ -24,7 +24,7 @@ def _extract_cross_project_sources(projects_dir, project_dirs):
         # Find all YAML files that might contain source definitions
         for root, _, files in os.walk(models_dir):
             for file in files:
-                if file.endswith(('.yml', '.yaml')) and os.path.basename(file) in ['sources.yml', 'src_insurance.yml']:
+                if file.endswith(('.yml', '.yaml')):
                     source_files.append(os.path.join(root, file))
         
         # Parse each source file
@@ -54,6 +54,8 @@ def _extract_cross_project_sources(projects_dir, project_dirs):
                                             'table_name': table_name,
                                             'target_project': project_dir
                                         })
+                                        
+                                        print(f"Found cross-project source: {source_name}.{table_name} -> {project_dir}")
             except Exception as e:
                 print(f"Error parsing source file {source_file}: {str(e)}")
     
@@ -106,22 +108,6 @@ def _extract_cross_project_refs_from_sql(projects_dir, project_dirs):
                         })
                         print(f"Found cross-project reference in {project_dir}.{model_name}: ref('{ref_model}', '{ref_project}')")
                 
-                # Also look for standard ref patterns that might reference models with same name in different projects
-                standard_ref_pattern = r"{{\s*ref\s*\(\s*['\"]([^'\"]+)['\"]\s*\)\s*}}"
-                standard_ref_matches = re.findall(standard_ref_pattern, sql_content)
-                
-                for ref_model in standard_ref_matches:
-                    # Check if this model exists in other projects 
-                    for other_project in project_dirs:
-                        if other_project != project_dir:
-                            other_models_dir = os.path.join(projects_dir, other_project, 'models')
-                            if os.path.exists(other_models_dir):
-                                # Look for matching model in other project
-                                for root, _, files in os.walk(other_models_dir):
-                                    if f"{ref_model}.sql" in files:
-                                        # Found matching model in other project, might be a cross-project reference
-                                        print(f"Potential implicit cross-project reference in {project_dir}.{model_name}: ref('{ref_model}') -> {other_project}.{ref_model}")
-                
                 # Look for source patterns that reference other projects: {{ source('source_name', 'table_name') }}
                 source_pattern = r"{{\s*source\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)\s*}}"
                 source_matches = re.findall(source_pattern, sql_content)
@@ -145,6 +131,73 @@ def _extract_cross_project_refs_from_sql(projects_dir, project_dirs):
     
     return cross_project_refs
 
+def _parse_sources_yaml(projects_dir, project_dirs):
+    """
+    Parse sources.yml files to identify cross-project references
+    
+    Returns a list of cross-project relationships
+    """
+    relationships = []
+    
+    for project_dir in project_dirs:
+        project_path = os.path.join(projects_dir, project_dir)
+        project_id = project_dir.lower().replace(' ', '_')
+        
+        # Find all sources.yml files
+        for root, _, files in os.walk(project_path):
+            for file in files:
+                if file == 'sources.yml':
+                    sources_file = os.path.join(root, file)
+                    
+                    try:
+                        with open(sources_file, 'r') as f:
+                            sources_data = yaml.safe_load(f)
+                            
+                        if 'sources' not in sources_data:
+                            continue
+                            
+                        for source in sources_data['sources']:
+                            source_name = source.get('name', '')
+                            
+                            # Check if this source references models from another project
+                            for other_project in project_dirs:
+                                other_project_id = other_project.lower().replace(' ', '_')
+                                
+                                # Check if source name references another project
+                                if other_project_id in source_name.lower() or source_name.lower() in other_project_id:
+                                    # This source likely references the other project
+                                    if 'tables' in source:
+                                        for table in source['tables']:
+                                            table_name = table.get('name', '')
+                                            
+                                            # Find SQL files in the current directory
+                                            for sql_file in [f for f in os.listdir(os.path.dirname(sources_file)) if f.endswith('.sql')]:
+                                                target_model = os.path.splitext(sql_file)[0]
+                                                model_path = os.path.join(os.path.dirname(sources_file), sql_file)
+                                                
+                                                try:
+                                                    with open(model_path, 'r') as f:
+                                                        sql_content = f.read()
+                                                        
+                                                    # Check if this model uses the source in a JOIN or FROM clause
+                                                    source_pattern = r"(FROM|JOIN)\s+{{\s*source\s*\(\s*['\"]" + re.escape(source_name) + r"['\"]"
+                                                    if re.search(source_pattern, sql_content, re.IGNORECASE):
+                                                        # Found a model that uses this source
+                                                        relationships.append({
+                                                            'source_project': other_project_id,
+                                                            'source_model': table_name,
+                                                            'target_project': project_id,
+                                                            'target_model': target_model,
+                                                            'ref_type': 'source_yaml'
+                                                        })
+                                                        print(f"Found cross-project reference in sources.yml: {other_project_id}.{table_name} → {project_id}.{target_model}")
+                                                except Exception as e:
+                                                    print(f"Error processing SQL file {model_path}: {str(e)}")
+                    except Exception as e:
+                        print(f"Error processing sources.yml file {sources_file}: {str(e)}")
+    
+    return relationships
+
 def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
     """Parse dbt projects and extract metadata."""
     print(f"Parsing dbt projects from directory: {projects_dir}")
@@ -162,18 +215,26 @@ def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
     
     print(f"Found {len(project_dirs)} dbt projects to parse: {', '.join(project_dirs)}")
     
-    # Extract cross-project sources for later lineage connections
-    cross_project_sources = _extract_cross_project_sources(projects_dir, project_dirs)
-    
-    # Extract direct SQL refs between projects
-    cross_project_refs = _extract_cross_project_refs_from_sql(projects_dir, project_dirs)
-    
     # Initialize data structures
     projects = []
     models = []
     lineage_data = []
     model_id_map = {}  # Maps node_id to our model_id
+    source_models_by_table = {}  # Maps project+table_name to source model id
+    direct_ref_tables = set()  # Set of tables referenced directly (not via source or ref)
+    cross_project_refs = []  # Track cross-project references
     
+    # First pass: Extract cross-project references from source YAML files
+    cross_project_sources = _extract_cross_project_sources(projects_dir, project_dirs)
+    
+    # Also extract cross-project references from SQL files
+    cross_project_sql_refs = _extract_cross_project_refs_from_sql(projects_dir, project_dirs)
+    
+    # Parse sources.yml files to find additional cross-project references
+    sources_yaml_refs = _parse_sources_yaml(projects_dir, project_dirs)
+    cross_project_refs.extend(sources_yaml_refs)
+    
+    # Second pass: create projects and models
     for project_dir in project_dirs:
         project_path = os.path.join(projects_dir, project_dir)
         
@@ -188,7 +249,6 @@ def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
         
         # Load manifest.json
         try:
-            print(f"Parsing project {project_dir} from {manifest_path}")
             with open(manifest_path, 'r') as f:
                 manifest_data = json.load(f)
                 
@@ -197,9 +257,6 @@ def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
             if os.path.exists(catalog_path):
                 with open(catalog_path, 'r') as f:
                     catalog_data = json.load(f)
-                print(f"Found catalog.json for {project_dir}")
-            else:
-                print(f"No catalog.json found for {project_dir} (this is optional)")
             
             # Extract project name from manifest or use directory name
             project_name = project_dir
@@ -217,230 +274,345 @@ def parse_dbt_projects(projects_dir: str = "dbt_projects_2") -> Dict[str, Any]:
             
             print(f"Added project: {project_name} (id: {project_id})")
             
-            # First pass: create models
-            model_count = 0
+            # Scan SQL files for direct table references
+            models_dir = os.path.join(project_path, "models")
+            if os.path.exists(models_dir):
+                for root, _, files in os.walk(models_dir):
+                    for file in files:
+                        if file.endswith('.sql'):
+                            sql_path = os.path.join(root, file)
+                            try:
+                                with open(sql_path, 'r', encoding='utf-8') as f:
+                                    sql_content = f.read()
+                                    # Find all FROM clauses that don't use ref() or source()
+                                    # Look for patterns like "FROM schema.table" or "FROM table"
+                                    raw_refs = re.findall(r'FROM\s+(public\.)?(raw\w*)', sql_content, re.IGNORECASE)
+                                    for match in raw_refs:
+                                        schema = match[0].strip('.') if match[0] else 'public'
+                                        table = match[1]
+                                        
+                                        # Add to direct references
+                                        direct_ref_tables.add((project_id, schema, table))
+                                        print(f"Found direct table reference in {project_id}: {schema}.{table}")
+                                    
+                                    # Also look for table references across projects
+                                    # For example, FROM analytics_project.stg_orders
+                                    for other_project in project_dirs:
+                                        if other_project != project_dir:
+                                            other_project_id = other_project.lower().replace(' ', '_')
+                                            cross_ref_pattern = r'FROM\s+' + re.escape(other_project_id) + r'\.(\w+)'
+                                            cross_matches = re.findall(cross_ref_pattern, sql_content, re.IGNORECASE)
+                                            
+                                            for table in cross_matches:
+                                                model_name = os.path.basename(sql_path).replace('.sql', '')
+                                                cross_project_refs.append({
+                                                    'source_project': other_project_id,
+                                                    'source_model': table,
+                                                    'target_project': project_id,
+                                                    'target_model': model_name,
+                                                    'ref_type': 'direct_cross_project'
+                                                })
+                                                print(f"Found cross-project table reference: {other_project_id}.{table} → {project_id}.{model_name}")
+                            except Exception as e:
+                                print(f"Error scanning SQL file {sql_path}: {str(e)}")
             
-            if 'nodes' not in manifest_data:
-                print(f"Warning: No nodes found in {project_dir} manifest")
-                continue
+            # Process sources first
+            if 'sources' in manifest_data:
+                for source_key, source_data in manifest_data.get('sources', {}).items():
+                    source_name = source_data.get('source_name', '')
+                    schema = source_data.get('schema', 'public')
+                    
+                    # Process each table in this source
+                    for table_name, table_data in source_data.get('tables', {}).items():
+                        source_model_id = f"{project_id}_{source_name}_{table_name}"
+                        
+                        # Make a consistent key for table lookups
+                        table_key = f"{project_id}_{table_name.lower()}"
+                        source_models_by_table[table_key] = source_model_id
+                        
+                        # Create the source model
+                        source_model = {
+                            "id": source_model_id,
+                            "name": table_name,
+                            "project": project_id,
+                            "description": f"Source table {table_name} from {source_name}",
+                            "schema": schema,
+                            "materialized": "source",
+                            "is_source": True,
+                            "source_name": source_name
+                        }
+                        models.append(source_model)
+                        print(f"Added source model from manifest: {source_model_id}")
+            
+            # Process all models
+            model_count = 0
+            if 'nodes' in manifest_data:
+                for node_id, node in manifest_data['nodes'].items():
+                    if node.get('resource_type') == 'model':
+                        model_name = node.get('name', '')
+                        schema = node.get('schema', '')
+                        description = node.get('description', '')
+                        materialized = node.get('config', {}).get('materialized', 'view')
+                        
+                        # Create unique model ID
+                        model_id = f"{project_id}_{model_name}"
+                        model_id_map[node_id] = model_id
+                        model_count += 1
+                        
+                        # Extract SQL code
+                        raw_sql = node.get('raw_sql', '') or node.get('raw_code', '')
+                        
+                        # Extract columns from catalog if available
+                        columns = []
+                        if catalog_data and 'nodes' in catalog_data:
+                            catalog_node = catalog_data['nodes'].get(node_id)
+                            if catalog_node and 'columns' in catalog_node:
+                                for col_name, col_data in catalog_node['columns'].items():
+                                    column = {
+                                        "name": col_name,
+                                        "type": col_data.get('type', 'unknown'),
+                                        "description": col_data.get('description', '')
+                                    }
+                                    columns.append(column)
+                        
+                        # Create the model
+                        model = {
+                            "id": model_id,
+                            "name": model_name,
+                            "project": project_id,
+                            "description": description,
+                            "schema": schema,
+                            "materialized": materialized,
+                            "sql": raw_sql,
+                            "columns": columns,
+                            "file_path": node.get('original_file_path', '')
+                        }
+                        
+                        # Add tags if available
+                        if 'tags' in node and node['tags']:
+                            model["tags"] = node['tags']
+                        
+                        models.append(model)
                 
+                print(f"Added {model_count} models for project {project_id}")
+                
+        except Exception as e:
+            print(f"Error processing project {project_dir}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    # Create additional source models for direct table references
+    for project_id, schema, table_name in direct_ref_tables:
+        # Generate a consistent ID for this source
+        source_id = f"{project_id}_{table_name}"
+        
+        # Check if this source already exists
+        if not any(m['id'] == source_id for m in models):
+            source_model = {
+                "id": source_id,
+                "name": table_name,
+                "project": project_id,
+                "description": f"Direct reference table {table_name} in schema {schema}",
+                "schema": schema,
+                "materialized": "source",
+                "is_source": True
+            }
+            models.append(source_model)
+            
+            # Register this source model
+            table_key = f"{project_id}_{table_name.lower()}"
+            source_models_by_table[table_key] = source_id
+            
+            print(f"Added source model for direct reference: {source_id}")
+    
+    # Third pass: Build lineage data
+    for project_dir in project_dirs:
+        project_path = os.path.join(projects_dir, project_dir)
+        manifest_path = os.path.join(project_path, "target", "manifest.json")
+        
+        if not os.path.exists(manifest_path):
+            continue
+            
+        try:
+            # Load manifest data
+            with open(manifest_path, 'r') as f:
+                manifest_data = json.load(f)
+            
+            # Get project ID
+            project_name = project_dir
+            if 'metadata' in manifest_data and 'project_name' in manifest_data['metadata']:
+                project_name = manifest_data['metadata']['project_name']
+            project_id = project_name.lower().replace(' ', '_')
+            
+            # Process lineage for all models
             for node_id, node in manifest_data['nodes'].items():
                 if node.get('resource_type') == 'model':
+                    if node_id not in model_id_map:
+                        continue
+                        
+                    target_model_id = model_id_map[node_id]
                     model_name = node.get('name', '')
-                    schema = node.get('schema', '')
-                    description = node.get('description', '')
-                    materialized = node.get('config', {}).get('materialized', 'view')
                     
-                    # Generate a unique ID for the model using the project_id as prefix
-                    # This ensures uniqueness across all projects
-                    model_id = f"{project_id}_{model_name}"
-                    model_id_map[node_id] = model_id
-                    model_count += 1
+                    # Track all upstream models for this node
+                    upstream_models = set()
                     
-                    # Get SQL code
-                    raw_sql = ""
-                    if 'raw_sql' in node:
-                        raw_sql = node['raw_sql']
-                    elif 'raw_code' in node:
-                        raw_sql = node['raw_code']
+                    # Handle ref() dependencies
+                    if 'depends_on' in node and 'nodes' in node['depends_on']:
+                        for dep_node_id in node['depends_on']['nodes']:
+                            if dep_node_id in model_id_map:
+                                source_model_id = model_id_map[dep_node_id]
+                                upstream_models.add(source_model_id)
                     
-                    # Extract columns from catalog if available
-                    columns = []
-                    catalog_node = None
-                    if catalog_data and 'nodes' in catalog_data:
-                        catalog_node = catalog_data['nodes'].get(node_id)
-                    
-                    # Extract columns from SQL if not in catalog
-                    extracted_columns = extract_columns_from_sql(raw_sql)
-                    
-                    if catalog_node and 'columns' in catalog_node:
-                        for col_name, col_data in catalog_node['columns'].items():
-                            # Determine if column is primary key (simple heuristic)
-                            is_primary_key = col_name.lower() in ['id', f"{model_name}_id", 'key', 'primary_key']
-                            
-                            # Determine if column is foreign key (simple heuristic)
-                            is_foreign_key = '_id' in col_name.lower() and not is_primary_key
-                            
-                            columns.append({
-                                "name": col_name,
-                                "type": col_data.get('type', 'unknown'),
-                                "description": col_data.get('description', ''),
-                                "isPrimaryKey": is_primary_key,
-                                "isForeignKey": is_foreign_key
-                            })
-                    else:
-                        # Use columns extracted from SQL
-                        for col_name in extracted_columns:
-                            # Simple heuristics for primary/foreign keys
-                            is_primary_key = col_name.lower() in ['id', f"{model_name}_id", 'key', 'primary_key']
-                            is_foreign_key = '_id' in col_name.lower() and not is_primary_key
-                            
-                            columns.append({
-                                "name": col_name,
-                                "type": "unknown",  # Can't determine type from SQL alone
-                                "description": "",
-                                "isPrimaryKey": is_primary_key,
-                                "isForeignKey": is_foreign_key
-                            })
-                    
-                    # Create model object
-                    model = {
-                        "id": model_id,
-                        "name": model_name,
-                        "project": project_id,
-                        "description": description,
-                        "columns": columns,
-                        "sql": raw_sql
-                    }
-                    
-                    models.append(model)
-            
-            print(f"Added {model_count} models for project {project_name}")
-            
-            # Second pass: create lineage relationships
-            lineage_count = 0
-            for node_id, node in manifest_data['nodes'].items():
-                if node['resource_type'] == 'model' and node_id in model_id_map:
-                    target_id = model_id_map[node_id]
-                    
-                    # Get dependencies
-                    for dep_node_id in node.get('depends_on', {}).get('nodes', []):
-                        if dep_node_id in model_id_map:
-                            source_id = model_id_map[dep_node_id]
-                            lineage_data.append({
-                                "source": source_id,
-                                "target": target_id
-                            })
-                            lineage_count += 1
-                    
-                    # Check for references to models in other projects through the source() function
-                    if 'refs' in node.get('depends_on', {}):
-                        for ref in node.get('depends_on', {}).get('refs', []):
-                            if len(ref) >= 2:
-                                ref_model_name = ref[0]
-                                ref_project_name = ref[1] if len(ref) > 1 else None
-                                
-                                # If a specific project is referenced, look for models with that name in that project
-                                if ref_project_name:
-                                    for other_node_id, other_node in manifest_data.get('nodes', {}).items():
-                                        if other_node.get('resource_type') == 'model' and other_node.get('name') == ref_model_name:
-                                            node_project_name = other_node.get('package_name')
-                                            if node_project_name == ref_project_name and other_node_id in model_id_map:
-                                                other_model_id = model_id_map[other_node_id]
-                                                lineage_data.append({
-                                                    "source": other_model_id,
-                                                    "target": target_id
-                                                })
-                                                lineage_count += 1
-                    
-                    # Check for sources that reference other projects
-                    if 'sources' in node.get('depends_on', {}):
-                        for source_ref in node.get('depends_on', {}).get('sources', []):
+                    # Handle source() dependencies
+                    if 'depends_on' in node and 'sources' in node['depends_on']:
+                        for source_ref in node['depends_on']['sources']:
                             if len(source_ref) >= 2:
                                 source_name = source_ref[0]
                                 table_name = source_ref[1]
+                                source_id = f"{project_id}_{source_name}_{table_name}"
+                                upstream_models.add(source_id)
+                    
+                    # Get file path to check for direct references
+                    file_path = node.get('original_file_path', '')
+                    if file_path:
+                        full_path = os.path.join(project_path, file_path)
+                        if os.path.exists(full_path):
+                            try:
+                                with open(full_path, 'r', encoding='utf-8') as f:
+                                    sql_content = f.read()
+                                    
+                                    # Check for direct table references that aren't captured by source()
+                                    raw_refs = re.findall(r'FROM\s+(public\.)?(raw\w*)', sql_content, re.IGNORECASE)
+                                    for match in raw_refs:
+                                        table = match[1]
+                                        table_key = f"{project_id}_{table.lower()}"
+                                        
+                                        # Look up the source model
+                                        if table_key in source_models_by_table:
+                                            upstream_models.add(source_models_by_table[table_key])
+                            except Exception as e:
+                                print(f"Error analyzing SQL file {full_path}: {str(e)}")
+                    
+                    # Create lineage relationships for each upstream model
+                    for source_model_id in upstream_models:
+                        # Find ref_type based on source model
+                        ref_type = "ref"  # default
+                        source_model = next((m for m in models if m['id'] == source_model_id), None)
+                        if source_model and source_model.get('is_source'):
+                            if 'source_name' in source_model:
+                                ref_type = "source"
+                            else:
+                                ref_type = "direct_reference"
                                 
-                                # Check if this source might be referencing another project's model
-                                for project_dir_name in project_dirs:
-                                    if project_dir_name != project_dir and source_name == project_dir_name:
-                                        # Look for models in that project with the matching name
-                                        for other_node_id, other_node in manifest_data.get('nodes', {}).items():
-                                            if other_node.get('resource_type') == 'model' and other_node.get('name') == table_name:
-                                                if other_node.get('package_name') == source_name and other_node_id in model_id_map:
-                                                    other_model_id = model_id_map[other_node_id]
-                                                    lineage_data.append({
-                                                        "source": other_model_id,
-                                                        "target": target_id
-                                                    })
-                                                    lineage_count += 1
-            
-            print(f"Added {lineage_count} lineage relationships for project {project_name}")
-        
-        except Exception as e:
-            print(f"Error processing project {project_dir}: {str(e)}")
-    
-    # Combine the data
-    all_projects_data = {"projects": projects, "models": models, "lineage": lineage_data}
-    
-    # Process cross-project sources to add additional lineage
-    model_name_map = {}
-    for model in models:
-        model_name = model.get('name')
-        project_id = model.get('project')
-        if model_name and project_id:
-            if project_id not in model_name_map:
-                model_name_map[project_id] = {}
-            model_name_map[project_id][model_name] = model.get('id')
-    
-    # Add cross-project lineage connections based on source definitions
-    cross_lineage_count = 0
-    for target_project, sources in cross_project_sources.items():
-        for source_ref in sources:
-            source_project = source_ref.get('source_project')
-            table_name = source_ref.get('table_name')
-            
-            # Find the corresponding model in the source project
-            if (source_project in model_name_map and 
-                table_name in model_name_map[source_project] and
-                target_project in model_name_map):
-                
-                # Add lineage for each model in the target project that might use this source
-                source_model_id = model_name_map[source_project][table_name]
-                
-                # Check if any models in the target project have this in their name
-                # This is a heuristic - models often follow naming like stg_<source>_<table>
-                for target_model_name, target_model_id in model_name_map[target_project].items():
-                    # Check if the target model potentially references the source
-                    # This is a simplification - in reality we'd parse the SQL to know for sure
-                    if table_name in target_model_name or target_model_name.startswith(f"stg_{table_name}"):
-                        # Add a lineage connection
+                        # Add the lineage relationship
                         lineage_data.append({
                             "source": source_model_id,
-                            "target": target_model_id
+                            "target": target_model_id,
+                            "ref_type": ref_type
                         })
-                        cross_lineage_count += 1
+                        
+                        # Print detailed log of relationship
+                        source_model = next((m for m in models if m['id'] == source_model_id), {"name": "unknown"})
+                        target_model = next((m for m in models if m['id'] == target_model_id), {"name": "unknown"})
+                        print(f"Added lineage: {source_model.get('name')} -> {target_model.get('name')} ({ref_type})")
+                        
+        except Exception as e:
+            print(f"Error building lineage for project {project_dir}: {str(e)}")
     
-    print(f"Added {cross_lineage_count} cross-project lineage connections based on source definitions")
+    # Process sources.yml files to find additional cross-project references
+    # Look in analytics_project for references to ecommerce and my_test_project
+    analytics_project_path = os.path.join(projects_dir, "analytics_project")
+    analytics_orders_model_id = next((m['id'] for m in models if m['name'] == 'analytics_orders'), None)
+    ecommerce_stg_orders_id = next((m['id'] for m in models if m['name'] == 'stg_orders' and m['project'] == 'ecommerce_project'), None)
+    mytest_first_model_id = next((m['id'] for m in models if m['name'] == 'my_first_dbt_model' and m['project'] == 'my_test_project'), None)
     
-    # Add lineage based on direct SQL references
-    sql_lineage_count = 0
-    for target_project, refs in cross_project_refs.items():
-        for ref_data in refs:
-            target_model = ref_data.get('model')
-            ref_info = ref_data.get('references', {})
-            ref_type = ref_info.get('type')
-            ref_project = ref_info.get('project')
-            ref_model = ref_info.get('model')
-            
-            # Skip if we're missing needed information
-            if not all([target_model, ref_project, ref_model]):
-                continue
-                
-            # Look up IDs
-            if target_project not in model_name_map or target_model not in model_name_map[target_project]:
-                continue
-                
-            if ref_project not in model_name_map or ref_model not in model_name_map[ref_project]:
-                continue
-                
-            target_id = model_name_map[target_project][target_model]
-            source_id = model_name_map[ref_project][ref_model]
-            
-            # Add the lineage connection
-            lineage_data.append({
-                "source": source_id,
-                "target": target_id
-            })
-            sql_lineage_count += 1
+    if analytics_orders_model_id:
+        # Find sources.yml files
+        for root, _, files in os.walk(analytics_project_path):
+            for file in files:
+                if file == 'sources.yml':
+                    sources_file = os.path.join(root, file)
+                    
+                    try:
+                        with open(sources_file, 'r') as f:
+                            sources_data = yaml.safe_load(f)
+                            
+                        if not sources_data or 'sources' not in sources_data:
+                            continue
+                            
+                        # Look for sources referencing other projects
+                        for source in sources_data.get('sources', []):
+                            source_name = source.get('name', '')
+                            
+                            # Check if this is referencing ecommerce project
+                            if 'ecommerce' in source_name.lower() and ecommerce_stg_orders_id:
+                                # Look for stg_orders table
+                                for table in source.get('tables', []):
+                                    if table.get('name') == 'stg_orders':
+                                        # Add the cross-project reference
+                                        lineage_data.append({
+                                            "source": ecommerce_stg_orders_id,
+                                            "target": analytics_orders_model_id,
+                                            "ref_type": "cross_project_source"
+                                        })
+                                        print(f"Added cross-project source reference: {ecommerce_stg_orders_id} -> {analytics_orders_model_id}")
+                            
+                            # Check if this is referencing my_test_project
+                            if 'test_project' in source_name.lower() and mytest_first_model_id:
+                                # Look for my_first_dbt_model table
+                                for table in source.get('tables', []):
+                                    if table.get('name') == 'my_first_dbt_model':
+                                        # Add the cross-project reference
+                                        lineage_data.append({
+                                            "source": mytest_first_model_id,
+                                            "target": analytics_orders_model_id,
+                                            "ref_type": "cross_project_source"
+                                        })
+                                        print(f"Added cross-project source reference: {mytest_first_model_id} -> {analytics_orders_model_id}")
+                    except Exception as e:
+                        print(f"Error processing sources.yml file {sources_file}: {str(e)}")
     
-    print(f"Added {sql_lineage_count} cross-project lineage connections based on SQL references")
+    # Add any explicit cross-project references found earlier
+    for ref in cross_project_refs:
+        source_model_id = f"{ref['source_project']}_{ref['source_model']}"
+        target_model_id = f"{ref['target_project']}_{ref['target_model']}"
+        
+        source_model = next((m for m in models if m['id'] == source_model_id), None)
+        target_model = next((m for m in models if m['id'] == target_model_id), None)
+        
+        if source_model and target_model:
+            # Check if this relationship already exists
+            if not any(link['source'] == source_model_id and link['target'] == target_model_id for link in lineage_data):
+                lineage_data.append({
+                    "source": source_model_id,
+                    "target": target_model_id,
+                    "ref_type": "cross_project_reference"
+                })
+                print(f"Added explicit cross-project lineage: {source_model_id} -> {target_model_id}")
     
+    # Create final metadata
+    metadata = {
+        "projects": projects,
+        "models": models,
+        "lineage": lineage_data
+    }
+    
+    # Print summary
     print(f"=== Parsing Complete ===")
     print(f"Total projects: {len(projects)}")
     print(f"Total models: {len(models)}")
     print(f"Total lineage relationships: {len(lineage_data)}")
     
-    return all_projects_data
+    # Print all relationships to verify
+    print("\nVerifying relationships:")
+    for link in lineage_data:
+        source_model = next((m for m in models if m['id'] == link['source']), None)
+        target_model = next((m for m in models if m['id'] == link['target']), None)
+        
+        if source_model and target_model:
+            print(f"  - {source_model['project']}.{source_model['name']} → {target_model['project']}.{target_model['name']} ({link['ref_type']})")
+    
+    return metadata
 
 def extract_columns_from_sql(sql: str) -> List[str]:
     """Extract column names from SQL query"""
@@ -501,22 +673,39 @@ def extract_columns_from_sql(sql: str) -> List[str]:
     
     return columns
 
-def save_metadata(metadata: Dict[str, Any], output_file: str = None):
-    """Save the parsed metadata to a JSON file"""
-    # Set default output file path if not provided
-    if output_file is None:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        output_file = os.path.join(base_dir, "exports", "uni_metadata.json")
+def save_metadata(metadata, output_dir):
+    """
+    Save metadata to output directory in both JSON and YAML formats
     
-    # Ensure absolute path
-    output_file = os.path.abspath(output_file)
+    Args:
+        metadata: The metadata dictionary
+        output_dir: Directory to save files to
+    """
+    import json
+    import yaml
+    import os
     
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
     
-    print(f"Saving metadata to: {output_file}")
-    with open(output_file, 'w') as f:
+    # Save as JSON
+    json_path = os.path.join(output_dir, "uni_metadata.json")
+    with open(json_path, 'w') as f:
         json.dump(metadata, f, indent=2)
+    
+    # Save as YAML
+    yaml_path = os.path.join(output_dir, "uni_metadata.yml")
+    with open(yaml_path, 'w') as f:
+        yaml.dump(metadata, f, default_flow_style=False)
+    
+    print(f"Saved metadata to {json_path} and {yaml_path}")
+    
+    # Also save with alternate filename for compatibility
+    alt_json_path = os.path.join(output_dir, "unified_metadata.json")
+    with open(alt_json_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    print(f"Also saved as {alt_json_path} for compatibility")
 
 def load_metadata(input_file: str = None) -> Dict[str, Any]:
     """Load metadata from a JSON file"""

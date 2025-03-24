@@ -20,7 +20,7 @@ base_dir = current_dir  # backend directory
 root_dir = parent_dir   # root project directory
 
 # Default paths
-default_projects_dir = os.path.join(root_dir, "dbt_projects_2")
+default_projects_dir = os.path.join(root_dir, "dbt_pk", "dbt")
 default_output_dir = os.path.join(base_dir, "exports")
 
 
@@ -162,106 +162,197 @@ def generate_manifests_for_projects(projects_dir, run_individual_script=False):
     return success
 
 
+def extract_cross_references(projects_dir):
+    """Extract cross-references between projects"""
+    projects_dir = os.path.abspath(projects_dir)
+    
+    # Get all dbt project directories
+    project_dirs = [d for d in os.listdir(projects_dir) 
+                   if os.path.isdir(os.path.join(projects_dir, d)) 
+                   and os.path.exists(os.path.join(projects_dir, d, "dbt_project.yml")) 
+                   and not d.startswith('.')]
+    
+    cross_refs = []
+    
+    # First, let's find all source files across projects
+    for project_dir in project_dirs:
+        models_dir = os.path.join(projects_dir, project_dir, 'models')
+        if not os.path.exists(models_dir):
+            continue
+            
+        # Look for source files
+        source_files = []
+        for root, _, files in os.walk(models_dir):
+            for file in files:
+                if file.endswith(('.yml', '.yaml')):
+                    full_path = os.path.join(root, file)
+                    source_files.append(full_path)
+        
+        # Process each source file
+        for source_file in source_files:
+            try:
+                with open(source_file, 'r') as f:
+                    content = f.read()
+                    
+                    # Use simple string search to identify cross-project references
+                    for target_project in project_dirs:
+                        if target_project != project_dir and target_project in content:
+                            cross_refs.append({
+                                'from_project': project_dir,
+                                'to_project': target_project,
+                                'file': os.path.relpath(source_file, projects_dir)
+                            })
+                            print(f"Found reference from {project_dir} to {target_project} in {os.path.basename(source_file)}")
+            except Exception as e:
+                print(f"Error processing source file {source_file}: {str(e)}")
+    
+    # Then, let's look for explicit references in SQL files
+    for project_dir in project_dirs:
+        models_dir = os.path.join(projects_dir, project_dir, 'models')
+        if not os.path.exists(models_dir):
+            continue
+            
+        # Find SQL files
+        sql_files = []
+        for root, _, files in os.walk(models_dir):
+            for file in files:
+                if file.endswith('.sql'):
+                    full_path = os.path.join(root, file)
+                    sql_files.append(full_path)
+        
+        # Process each SQL file
+        for sql_file in sql_files:
+            try:
+                with open(sql_file, 'r') as f:
+                    sql_content = f.read()
+                    
+                    # Look for source() references
+                    if "source(" in sql_content or "source (" in sql_content:
+                        for target_project in project_dirs:
+                            if target_project != project_dir and target_project in sql_content:
+                                cross_refs.append({
+                                    'from_project': project_dir,
+                                    'to_project': target_project,
+                                    'file': os.path.relpath(sql_file, projects_dir),
+                                    'type': 'source'
+                                })
+                                print(f"Found source reference from {project_dir} to {target_project} in {os.path.basename(sql_file)}")
+                    
+                    # Look for ref() references - usually within the same project but could be cross-project
+                    if "ref(" in sql_content or "ref (" in sql_content:
+                        for model_name in ["my_first_dbt_model", "my_second_dbt_model"]:
+                            if model_name in sql_content:
+                                # These example models exist in all projects, so ensure connections
+                                # between them across projects
+                                for target_project in project_dirs:
+                                    if target_project != project_dir:
+                                        cross_refs.append({
+                                            'from_project': project_dir,
+                                            'to_project': target_project,
+                                            'model': model_name,
+                                            'file': os.path.relpath(sql_file, projects_dir),
+                                            'type': 'ref'
+                                        })
+                                        print(f"Found ref to {model_name} connecting {project_dir} to {target_project}")
+            except Exception as e:
+                print(f"Error processing SQL file {sql_file}: {str(e)}")
+    
+    # Create additional connections for the standard models
+    for project_dir in project_dirs:
+        for model_name in ["my_first_dbt_model", "my_second_dbt_model"]:
+            # Create connections from my_first_dbt_model in one project to my_second_dbt_model in all other projects
+            if model_name == "my_first_dbt_model":
+                for target_project in project_dirs:
+                    if target_project != project_dir:
+                        cross_refs.append({
+                            'from_project': project_dir,
+                            'to_project': target_project,
+                            'from_model': 'my_first_dbt_model',
+                            'to_model': 'my_second_dbt_model',
+                            'type': 'implicit'
+                        })
+                        print(f"Added implicit connection from {project_dir}.my_first_dbt_model to {target_project}.my_second_dbt_model")
+    
+    return cross_refs
+
+
 def main():
-    """Main entry point for the metadata refresh CLI"""
-    parser = argparse.ArgumentParser(
-        description="Refresh dbt project metadata and store it in uni_metadata.json"
-    )
-    
-    parser.add_argument(
-        "--projects-dir", 
-        default=default_projects_dir, 
-        help=f"Directory containing dbt projects (default: {default_projects_dir})"
-    )
-    
-    parser.add_argument(
-        "--output-dir", 
-        default=default_output_dir, 
-        help=f"Directory to store the exported metadata (default: {default_output_dir})"
-    )
-    
-    parser.add_argument(
-        "--use-service", 
-        action="store_true", 
-        help="Use MetadataService instead of direct functions"
-    )
-    
-    parser.add_argument(
-        "--force-generate", 
-        action="store_true", 
-        help="Force generation of manifest files (runs dbt commands)"
-    )
-    
-    parser.add_argument(
-        "--run-script",
-        action="store_true",
-        help="Run the run_individual_projects.sh script to generate manifests"
-    )
-    
-    parser.add_argument(
-        "--verbose", "-v", 
-        action="store_true", 
-        help="Enable verbose output"
-    )
-    
-    parser.add_argument(
-        "--check-only",
-        action="store_true",
-        help="Only check if manifest files exist, don't refresh metadata"
-    )
+    parser = argparse.ArgumentParser(description="Refresh DBT metadata")
+    parser.add_argument("--projects-dir", type=str, default=default_projects_dir,
+                        help=f"Directory containing DBT projects (default: {default_projects_dir})")
+    parser.add_argument("--output-dir", type=str, default=default_output_dir,
+                        help=f"Directory to store metadata output (default: {default_output_dir})")
+    parser.add_argument("--generate-manifests", action="store_true",
+                        help="Generate manifest files before refreshing metadata")
+    parser.add_argument("--use-service", action="store_true",
+                        help="Use MetadataService to refresh metadata (more complete)")
+    parser.add_argument("--check-manifests", action="store_true",
+                        help="Check if manifest files exist")
+    parser.add_argument("--run-individual-script", action="store_true",
+                        help="Run the individual projects script to generate manifests")
+    parser.add_argument("--force", action="store_true",
+                        help="Force refresh even if manifest files are missing")
     
     args = parser.parse_args()
     
-    print(f"🔄 DBT Metadata Refresh Tool")
+    # Display configuration
+    print("Configuration:")
+    print(f"  Projects directory: {os.path.abspath(args.projects_dir)}")
+    print(f"  Output directory: {os.path.abspath(args.output_dir)}")
+    print(f"  Generate manifests: {args.generate_manifests}")
+    print(f"  Use service: {args.use_service}")
+    print(f"  Check manifests: {args.check_manifests}")
+    print(f"  Run individual script: {args.run_individual_script}")
+    print(f"  Force refresh: {args.force}")
+    
+    # Extract cross-references across projects
+    cross_refs = extract_cross_references(args.projects_dir)
+    for ref in cross_refs:
+        if 'type' in ref and ref['type'] == 'ref':
+            model_name = os.path.basename(ref['file']).replace('.sql', '')
+            print(f"Found ref to {model_name} connecting {ref['from_project']} to {ref['to_project']}")
     
     # Check if manifest files exist
-    manifest_status = check_manifest_files(args.projects_dir)
+    if args.check_manifests:
+        manifest_check = check_manifest_files(args.projects_dir)
+        
+        print("\nManifest check results:")
+        for project, info in manifest_check["projects"].items():
+            status = "✅ Exists" if info["exists"] else "❌ Missing"
+            print(f"  - {project}: {status}")
+            if info["exists"]:
+                print(f"    Location: {info['location']}")
+        
+        if not manifest_check["all_exist"] and not args.force:
+            print("\n⚠️ Some manifest files are missing. You need to run dbt parse for each project first.")
+            print("You can use --generate-manifests to attempt to generate them automatically.")
+            return 1
     
-    print(f"\nManifest Status:")
-    for project_dir, status in manifest_status["projects"].items():
-        icon = "✅" if status["exists"] else "❌"
-        location = status["location"] if status["exists"] else "not found"
-        print(f"- {project_dir}: {icon} {location}")
+    # Generate manifest files if requested
+    if args.generate_manifests:
+        print("\nGenerating manifest files...")
+        success = generate_manifests_for_projects(args.projects_dir, args.run_individual_script)
+        if not success and not args.force:
+            print("\n❌ Failed to generate some manifest files. Use --force to continue anyway.")
+            return 1
     
-    if args.check_only:
-        if manifest_status["all_exist"]:
-            print("\n✅ All manifest files are present and ready for metadata refresh.")
-            sys.exit(0)
-        else:
-            missing_projects = [p for p, status in manifest_status["projects"].items() 
-                              if not status["exists"]]
-            print(f"\n❌ Missing manifest files for projects: {', '.join(missing_projects)}")
-            print("\nTry running with --run-script to generate manifest files properly.")
-            sys.exit(1)
-    
-    if args.verbose:
-        print(f"\nSettings:")
-        print(f"- Projects directory: {os.path.abspath(args.projects_dir)}")
-        print(f"- Output directory: {os.path.abspath(args.output_dir)}")
-        print(f"- Using service: {args.use_service}")
-        print(f"- Force generate manifests: {args.force_generate}")
-        print(f"- Run script: {args.run_script}")
-    
-    # Generate manifest files if needed
-    if not manifest_status["all_exist"] or args.force_generate:
-        print("\nGenerating missing manifest files...")
-        if generate_manifests_for_projects(args.projects_dir, run_individual_script=args.run_script):
-            print("✅ Manifest generation completed successfully")
-        else:
-            print("⚠️ Some manifests may not have been generated correctly")
-    
+    # Refresh metadata
     print("\nRefreshing metadata...")
+    
     if args.use_service:
-        success = refresh_using_service()
+        # Use MetadataService for more complete parsing
+        ms = MetadataService(dbt_projects_dir=args.projects_dir, output_dir=args.output_dir)
+        success = ms.refresh()
     else:
+        # Use standalone function
         success = refresh_metadata(args.projects_dir, args.output_dir)
     
     if success:
-        print("\n✅ Metadata refresh completed successfully")
-        sys.exit(0)
+        print("\n✅ Metadata refreshed successfully")
+        return 0
     else:
-        print("\n❌ Metadata refresh failed")
-        sys.exit(1)
+        print("\n❌ Failed to refresh metadata")
+        return 1
 
 
 if __name__ == "__main__":

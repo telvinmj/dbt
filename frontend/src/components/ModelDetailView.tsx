@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, Descriptions, Table, Tag, Space, Tabs, Button, message, Tooltip, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import DescriptionEdit from './DescriptionEdit';
-import { DatabaseOutlined, TableOutlined, SyncOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, TableOutlined, SyncOutlined, FileOutlined, FolderOutlined, RobotOutlined } from '@ant-design/icons';
 import { refreshModelMetadata } from '../services/api';
 
 const { TabPane } = Tabs;
@@ -134,13 +134,14 @@ const ModelDetailView: React.FC<ModelDetailViewProps> = ({ model, onDescriptionU
           </Space>
         }
         extra={
-          <Tooltip title="Refresh AI descriptions">
+          <Tooltip title="Refresh AI descriptions for this model and its columns (AI descriptions are also auto-generated during metadata refresh)">
             <Button 
-              icon={<SyncOutlined />} 
+              icon={<RobotOutlined />} 
               onClick={handleRefreshMetadata}
               loading={refreshing}
+              type="primary"
             >
-              Refresh Descriptions
+              Refresh AI Descriptions
             </Button>
           </Tooltip>
         }

@@ -54,7 +54,7 @@ const DescriptionEdit: React.FC<DescriptionEditProps> = ({
   // Determine what description to show and its source
   const isAI = !userEdited && aiDescription;
   const isUserEdited = userEdited;
-  const displayDescription = description || aiDescription || 'No description available';
+  const displayDescription = (description && description !== "") ? description : (aiDescription || 'No description available');
 
   // Information modal about AI-generated descriptions
   const showAIInfoModal = () => {
@@ -63,6 +63,13 @@ const DescriptionEdit: React.FC<DescriptionEditProps> = ({
 
   const handleAIInfoClose = () => {
     setShowAIInfo(false);
+  };
+
+  const useAIDescription = () => {
+    if (aiDescription) {
+      form.setFieldsValue({ description: aiDescription });
+      setIsEditing(true);
+    }
   };
 
   return (
@@ -81,24 +88,36 @@ const DescriptionEdit: React.FC<DescriptionEditProps> = ({
             User Edited
           </Tag>
         )}
-        {!isEditing && (
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            size="small"
-          >
-            Edit
-          </Button>
-        )}
-        {isAI && (
-          <Button
-            type="text"
-            icon={<QuestionCircleOutlined />} 
-            size="small"
-            onClick={showAIInfoModal}
-          />
-        )}
+        <Space>
+          {!isEditing && (
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              size="small"
+            >
+              Edit
+            </Button>
+          )}
+          {aiDescription && !isEditing && description !== aiDescription && (
+            <Button
+              type="link"
+              icon={<RobotOutlined />}
+              onClick={useAIDescription}
+              size="small"
+            >
+              Use AI Version
+            </Button>
+          )}
+          {isAI && (
+            <Button
+              type="text"
+              icon={<QuestionCircleOutlined />} 
+              size="small"
+              onClick={showAIInfoModal}
+            />
+          )}
+        </Space>
       </div>
 
       {!isEditing ? (

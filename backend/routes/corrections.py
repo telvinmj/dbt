@@ -31,11 +31,11 @@ def create_correction(correction: UserCorrectionCreate, db: Session = Depends(ge
             raise HTTPException(status_code=404, detail="Model not found")
         
         # Store original description
-        # original = entity.ai_description if entity.ai_description else entity.description  # Comment out AI field
-        original = entity.description
+        original = entity.ai_description if entity.ai_description else entity.description
         
         # Update model with corrected description
         entity.description = correction.corrected_description
+        entity.user_edited = True  # Mark as user-edited
         
     elif correction.entity_type == 'column':
         entity = db.query(DBColumn).filter(DBColumn.id == correction.entity_id).first()
@@ -43,11 +43,11 @@ def create_correction(correction: UserCorrectionCreate, db: Session = Depends(ge
             raise HTTPException(status_code=404, detail="Column not found")
         
         # Store original description
-        # original = entity.ai_description if entity.ai_description else entity.description  # Comment out AI field
-        original = entity.description
+        original = entity.ai_description if entity.ai_description else entity.description
         
         # Update column with corrected description
         entity.description = correction.corrected_description
+        entity.user_edited = True  # Mark as user-edited
         
     else:
         raise HTTPException(status_code=400, detail="Invalid entity type")

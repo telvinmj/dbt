@@ -1,3 +1,8 @@
+/**
+ * DEPRECATED: This component is no longer used and should be removed.
+ * It was previously used to display a visualization of projects.
+ */
+
 import React from 'react';
 
 interface Project {

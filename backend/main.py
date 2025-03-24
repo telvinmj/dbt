@@ -133,6 +133,15 @@ async def get_models(project_id: str = None, search: str = None, tag: str = None
         for key, default_value in defaults.items():
             if key not in model or model[key] is None:
                 model[key] = default_value
+        
+        # Make sure empty descriptions use AI descriptions if available
+        if model.get("description") == "" and model.get("ai_description"):
+            model["description"] = model["ai_description"]
+        
+        # Process columns to fill in empty descriptions with AI descriptions
+        for column in model.get("columns", []):
+            if column.get("description") == "" and column.get("ai_description"):
+                column["description"] = column["ai_description"]
     
     print(f"API returning {len(models)} models")
     if search and len(models) > 0:
@@ -146,6 +155,16 @@ async def get_model(model_id: str):
     model = metadata_service.get_model(model_id)
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
+    
+    # Make sure empty descriptions use AI descriptions if available
+    if model.get("description") == "" and model.get("ai_description"):
+        model["description"] = model["ai_description"]
+    
+    # Process columns to fill in empty descriptions with AI descriptions
+    for column in model.get("columns", []):
+        if column.get("description") == "" and column.get("ai_description"):
+            column["description"] = column["ai_description"]
+            
     return model
 
 @app.get("/api/models/{model_id}/lineage")
@@ -195,6 +214,14 @@ async def refresh_model_metadata(model_id: str):
     model = metadata_service.get_model(model_id)
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
+    
+    # Ensure AI descriptions are enabled
+    if not metadata_service.use_ai_descriptions:
+        print("Enabling AI descriptions for model refresh")
+        metadata_service.use_ai_descriptions = True
+        if not metadata_service.ai_service:
+            from backend.services.ai_description_service import AIDescriptionService
+            metadata_service.ai_service = AIDescriptionService()
     
     success = metadata_service.refresh_model_metadata(model_id)
     if not success:

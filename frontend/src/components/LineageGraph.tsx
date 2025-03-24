@@ -24,6 +24,7 @@ interface Model {
   project: string;
   description?: string | null;
   originalModels?: Model[];
+  is_source?: boolean;
 }
 
 interface LineageGraphProps {
@@ -42,18 +43,44 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
 
   // Create deduplicated models based on model name AND project
   const { deduplicatedModels, modelMap, deduplicatedLineage } = useMemo(() => {
-    // First, identify reference tables (models that should be deduplicated across projects)
-    // These include fact tables (fct_), staging models (stg_) and dimension models (dim_)
+    // IMPORTANT: Don't deduplicate source models or their direct targets
+    // This preserves important relationships like raw_orders → stg_orders
     const crossProjectModels = new Map<string, Model[]>();
     const projectSpecificModels = new Map<string, Model[]>();
+    
+    // First, identify source models and their direct targets to preserve them
+    const sourceModelIds = new Set<string>();
+    const targetModelIds = new Set<string>();
+    
+    // Find all source models (models with is_source=true) and their targets
+    lineage.forEach(link => {
+      const sourceModel = models.find(m => m.id === link.source);
+      const targetModel = models.find(m => m.id === link.target);
+      
+      if (sourceModel && sourceModel.is_source) {
+        sourceModelIds.add(sourceModel.id);
+        if (targetModel) {
+          targetModelIds.add(targetModel.id);
+        }
+      }
+    });
     
     // Separate models that should be deduplicated across projects from project-specific models
     models.forEach(model => {
       if (!model.name) return;
       
+      // Never deduplicate source models or their direct targets
+      const isSourceOrTarget = sourceModelIds.has(model.id) || targetModelIds.has(model.id);
+      
       // Check if this is a cross-project model (starts with fct_, stg_, or dim_)
-      const isCrossProject = model.name.startsWith('fct_') || model.name.startsWith('stg_') || model.name.startsWith('dim_');
-      const key = isCrossProject ? model.name : `${model.name}_${model.project}`;
+      // but only if it's not a source model or direct target of a source
+      const isCrossProject = !isSourceOrTarget && 
+        (model.name.startsWith('fct_') || model.name.startsWith('stg_') || model.name.startsWith('dim_'));
+      
+      // For source models and their targets, include project in the key to keep them separate
+      const key = isSourceOrTarget || !isCrossProject 
+        ? `${model.name}_${model.project}` 
+        : model.name;
       
       const targetMap = isCrossProject ? crossProjectModels : projectSpecificModels;
       
@@ -63,6 +90,12 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       targetMap.get(key)?.push(model);
     });
+    
+    // Log for debugging
+    console.log("Cross-project models:", Array.from(crossProjectModels.keys()));
+    console.log("Project-specific models:", Array.from(projectSpecificModels.keys()));
+    console.log("Source models:", Array.from(sourceModelIds));
+    console.log("Target models:", Array.from(targetModelIds));
     
     // Create deduplicated models list
     const dedupedModels: Model[] = [];
@@ -81,15 +114,17 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       
       // Find the model from the project that "owns" this entity, if it exists
       const homeProject = modelsWithSameName.find(model => 
-        model.project && model.project.includes(entityName)
+        model.project && model.project.toLowerCase().includes(entityName.toLowerCase())
       );
       
       // Use the home project model if found, otherwise use the first one
       const baseModel = homeProject || modelsWithSameName[0];
       
+      // Keep the original project info to maintain correct visual grouping
       const consolidatedModel: Model = {
         ...baseModel,
         id: deduplicatedId,
+        name: modelName,
         // Store original models for reference
         originalModels: modelsWithSameName
       };
@@ -126,6 +161,10 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       });
     });
     
+    // Log the mapping for debugging
+    console.log("Model ID mapping:", modelIdMap);
+    console.log("Input lineage:", lineage);
+    
     // Deduplicate lineage connections
     const seenConnections = new Set<string>();
     const dedupedLineage: LineageLink[] = [];
@@ -136,7 +175,10 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
       const sourceId = modelIdMap[link.source];
       const targetId = modelIdMap[link.target];
       
-      if (!sourceId || !targetId) return;
+      if (!sourceId || !targetId) {
+        console.log(`Missing mapping for source: ${link.source} or target: ${link.target}`);
+        return;
+      }
       
       // Skip if sourceId and targetId are the same (self-reference after deduplication)
       if (sourceId === targetId) return;
@@ -152,6 +194,8 @@ const LineageGraph: React.FC<LineageGraphProps> = ({ models, lineage }) => {
         });
       }
     });
+    
+    console.log("Output lineage:", dedupedLineage);
     
     return { 
       deduplicatedModels: dedupedModels, 

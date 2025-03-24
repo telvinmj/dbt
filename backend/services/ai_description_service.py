@@ -12,6 +12,8 @@ class AIDescriptionService:
         if not self.api_key:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
             print("Set it using: export GEMINI_API_KEY='your-api-key'")
+        else:
+            print(f"Using Gemini API key: {self.api_key[:5]}...{self.api_key[-4:]}")
         
         # Updated to use gemini-2.0-flash-lite model as specified
         self.api_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent"
@@ -254,28 +256,31 @@ class AIDescriptionService:
             return None
     
     def enrich_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Enrich the metadata with AI-generated descriptions for models and columns"""
+        """Enrich metadata with AI-generated descriptions"""
+        # Don't proceed if AI descriptions are disabled or the service is not available
         if not self.api_key:
-            print("Skipping AI description generation: No API key provided")
+            print("Skipping AI enrichment: No API key available")
             return metadata
-            
-        print("\n=== Starting AI Description Generation ===")
         
-        # Create a deep copy of the metadata to avoid modifying the original
+        print("Starting AI-based metadata enrichment...")
+        
+        # Make a deep copy of the metadata to avoid modifying the original
         enriched_metadata = json.loads(json.dumps(metadata))
         
-        # Process models
-        for i, model in enumerate(enriched_metadata.get("models", [])):
-            model_name = model.get("name", "")
-            project_name = model.get("project", "")
+        # Get models list
+        models = enriched_metadata.get("models", [])
+        
+        # Process models (limit to 5 for testing/dev)
+        for i, model in enumerate(models[:5]):
+            model_name = model.get("name", "Unknown")
+            project_name = model.get("project", "Unknown")
             
-            print(f"Processing model {i+1}/{len(enriched_metadata.get('models', []))}: {model_name}")
-            
-            # Skip if the model already has a description
-            if model.get("description") and len(model.get("description", "")) > 5:
-                print(f"  - Model already has a description")
+            # Skip models that already have descriptions unless forced
+            if model.get("description") and not model.get("refresh_description"):
                 continue
-                
+            
+            print(f"Generating description for model {i+1}/5: {model_name}")
+            
             # Generate model description
             model_desc = self.generate_model_description(
                 model_name,
@@ -285,71 +290,17 @@ class AIDescriptionService:
             )
             
             if model_desc:
-                # Store both the AI description and keep original if it exists
-                if not model.get("ai_description"):
-                    model["ai_description"] = model_desc
-                    print(f"  - Added AI description for model")
+                # Store AI description
+                model["ai_description"] = model_desc
                 
                 # If no description exists at all, use the AI one as default
                 if not model.get("description"):
                     model["description"] = model_desc
-            
-            # Process columns for this model
-            columns_to_process = []
-            columns_with_description = 0
-            
-            # First, count columns that already have descriptions and identify important columns
-            for j, column in enumerate(model.get("columns", [])):
-                if column.get("description") and len(column.get("description", "")) > 5:
-                    columns_with_description += 1
-                    continue
+                    model["user_edited"] = False
                 
-                # Add to processing list, prioritizing key columns
-                column_name = column.get("name", "")
-                priority = 0
-                
-                # Give higher priority to primary keys, foreign keys, and columns with "id" in name
-                if column.get("isPrimaryKey"):
-                    priority += 3
-                if column.get("isForeignKey"):
-                    priority += 2
-                if "id" in column_name.lower() or "key" in column_name.lower():
-                    priority += 1
-                    
-                columns_to_process.append((j, column, priority))
-            
-            # Sort by priority (descending)
-            columns_to_process.sort(key=lambda x: x[2], reverse=True)
-            
-            # Process columns, with limit based on how many already have descriptions
-            column_limit = 15
-            if columns_with_description < 5:
-                column_limit = 20  # Process more if few have descriptions
-                
-            print(f"  - Found {len(columns_to_process)} columns without descriptions, processing up to {column_limit}")
-            
-            # Process columns up to the limit
-            for idx, (j, column, _) in enumerate(columns_to_process[:column_limit]):
-                column_name = column.get("name", "")
-                print(f"  - Processing column {idx+1}/{min(column_limit, len(columns_to_process))}: {column_name}")
-                
-                # Generate column description
-                column_desc = self.generate_column_description(
-                    column_name,
-                    model_name,
-                    model.get("sql", ""),
-                    column.get("type", ""),
-                    model.get("description", "")
-                )
-                
-                if column_desc:
-                    # Store both the AI description and keep original if it exists
-                    if not column.get("ai_description"):
-                        column["ai_description"] = column_desc
-                    
-                    # If no description exists at all, use the AI one as default
-                    if not column.get("description"):
-                        column["description"] = column_desc
+                # Clear refresh flag if it exists
+                if "refresh_description" in model:
+                    del model["refresh_description"]
         
-        print("=== AI Description Generation Complete ===\n")
+        # Return the enriched metadata
         return enriched_metadata 
