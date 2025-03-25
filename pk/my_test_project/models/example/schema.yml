@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: my_first_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+  
+  - name: my_second_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+  
+  - name: stg_orders
+    description: "Staging model for raw orders data"
+    columns:
+      - name: order_id
+      
+      - name: customer_id
+      
+      - name: order_date
+      
+      - name: status
+  
+  - name: stg_campaigns
+

@@ -303,6 +303,11 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Set document title
+  useEffect(() => {
+    document.title = "DBT UI GENERATOR";
+  }, []);
+
   useEffect(() => {
     console.log("App component mounted");
     const fetchData = async () => {
@@ -432,7 +437,7 @@ function App() {
 
   const renderDashboard = () => (
     <div className="dashboard-section">
-      <h2>dbt Metadata Explorer</h2>
+      <h2>DBT UI GENERATOR</h2>
       <p>Explore your dbt projects, models, and lineage with AI-generated descriptions</p>
       
       <div className="stats-row">
@@ -517,25 +522,23 @@ function App() {
     <Layout className="app-layout">
       <Header className="app-header">
         <div className="header-container">
-          <div className="logo">
-            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '18px', fontWeight: 'bold' }}>
-              <DatabaseOutlined style={{ marginRight: '10px' }} /> DBT Metadata Explorer
-            </Link>
-          </div>
-          <div className="navigation">
+          <Link to="/" className="logo-section">
+            <DatabaseOutlined className="logo-icon" />
+            <span className="app-title">DBT UI GENERATOR</span>
+          </Link>
+          <div className="nav-section">
             <Menu
               theme="dark"
               mode="horizontal"
               selectedKeys={[activeTab]}
               onSelect={({ key }) => handleTabChange(key as string)}
-              style={{ lineHeight: '64px', borderRight: 0, minWidth: '400px' }}
             >
               <Menu.Item key="dashboard" icon={<DashboardOutlined />}>Dashboard</Menu.Item>
               <Menu.Item key="models" icon={<TableOutlined />}>Models</Menu.Item>
               <Menu.Item key="lineage" icon={<ApartmentOutlined />}>Lineage</Menu.Item>
             </Menu>
           </div>
-          <div className="header-actions">
+          <div className="action-section">
             <Space size="middle">
               <WatcherStatusIndicator />
               <Button 
@@ -579,7 +582,7 @@ function App() {
       
       <Footer className="app-footer">
         <div className="footer-container">
-          <p>DBT Metadata Explorer &copy; 2023</p>
+          <p>DBT UI GENERATOR &copy; 2023</p>
         </div>
       </Footer>
     </Layout>

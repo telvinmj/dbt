@@ -94,44 +94,96 @@
 
 .app-header {
   padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #001529;
   position: fixed;
   width: 100%;
   z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .header-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 16px;
-  height: 100%;
+  height: 70px;
+  padding: 0 24px;
 }
 
-.logo {
-  flex: 0 0 auto;
-  margin-right: 24px;
+/* Logo styling */
+.logo-section {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: none;
 }
 
-.navigation {
-  flex: 1 1 auto;
+.logo-icon {
+  font-size: 24px;
+  color: white;
+  margin-right: 12px;
 }
 
-.header-actions {
-  flex: 0 0 auto;
+.app-title {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Navigation styling */
+.nav-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.nav-section .ant-menu {
+  background: transparent;
+  border-bottom: none;
+  line-height: 70px;
+}
+
+.nav-section .ant-menu-item {
+  padding: 0 20px;
+  margin: 0 4px;
+  font-size: 15px;
+}
+
+/* Menu item styling - improved selected state */
+.ant-menu-horizontal > .ant-menu-item {
+  font-weight: 500;
+  margin: 0 8px;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover {
+  color: #1890ff !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item-selected {
+  background-color: rgba(24, 144, 255, 0.2) !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.ant-menu-horizontal > .ant-menu-item-selected::after {
+  border-bottom: 2px solid #1890ff !important;
+}
+
+/* Action buttons styling */
+.action-section {
   display: flex;
   align-items: center;
 }
 
+/* Content area needs to account for fixed header */
 .app-content {
   padding: 24px;
   margin: 24px;
   background: #fff;
   border-radius: 4px;
   min-height: 280px;
-  margin-top: 64px; /* Space for fixed header */
+  margin-top: 94px;
 }
 
 .logo {
@@ -385,11 +437,23 @@ footer {
 /* Improve menu item spacing */
 .ant-menu-horizontal {
   line-height: 64px;
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
-.ant-menu-item {
+.ant-menu-horizontal > .ant-menu-item {
+  font-weight: 500;
+  margin: 0 8px;
   padding: 0 16px;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover,
+.ant-menu-horizontal > .ant-menu-item-selected {
+  color: #1890ff !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item::after,
+.ant-menu-horizontal > .ant-menu-item-selected::after {
+  border-bottom: 2px solid #1890ff !important;
 }
 
 .content-container {
@@ -1037,20 +1101,18 @@ th {
   margin-bottom: 20px;
 }
 
-/* Menu item styling */
-.ant-menu-horizontal > .ant-menu-item {
-  font-weight: 500;
-  margin: 0 8px;
-}
-
-.ant-menu-horizontal > .ant-menu-item:hover,
-.ant-menu-horizontal > .ant-menu-item-selected {
-  border-bottom: 2px solid #1890ff;
-  color: #1890ff;
-}
-
-/* Button styling */
-.header-actions .ant-btn {
-  height: 32px;
-  border-radius: 4px;
+/* Responsive adjustments for the navbar */
+@media (max-width: 768px) {
+  .header-container {
+    height: auto;
+    padding: 10px 16px;
+  }
+  
+  .nav-section .ant-menu {
+    line-height: 50px;
+  }
+  
+  .app-content {
+    margin-top: 120px;
+  }
 } 

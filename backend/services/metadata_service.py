@@ -499,6 +499,13 @@ class MetadataService:
         """Get all models, optionally filtered by project and search term"""
         models = self.metadata.get("models", [])
         
+        # Filter out sources - using proper logical approach to identify sources
+        models = [m for m in models if not (
+            m.get("is_source", False) or  # Check is_source flag
+            m.get("materialized") == "source" or  # Check materialized = source
+            (isinstance(m.get("id", ""), str) and "_raw_" in m.get("id", ""))  # Backup check for raw sources
+        )]
+        
         # Filter by project if specified
         if project_id:
             models = [m for m in models if m["project"] == project_id]
