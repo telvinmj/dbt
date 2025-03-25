@@ -102,7 +102,10 @@ The application will be available at http://localhost:3000
 
 ## Workflow Diagram
 
+
 ![alt text](images/image.png)
+=======
+
 
 ## Features
 
