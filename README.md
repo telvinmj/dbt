@@ -99,6 +99,11 @@ npm start
 
 The application will be available at http://localhost:3000
 
+
+## Workflow Diagram
+
+![alt text](image.png)
+
 ## Features
 
 - **Project Explorer**: Navigate through all your dbt projects
