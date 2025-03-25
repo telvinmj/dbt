@@ -1,146 +1,194 @@
-
-
-
-
-
-
 # DBT Metadata Explorer
 
 A comprehensive web application for exploring, visualizing, and documenting your dbt projects' metadata with AI-enhanced descriptions.
 
-## Quick Start Guide
+## Project Overview
+
+DBT Metadata Explorer scans your dbt projects, extracts metadata from manifest and catalog files, and provides a user-friendly interface to:
+
+- Browse models across multiple dbt projects
+- Visualize model lineage and dependencies
+- Search and filter models by name, project, tags, and materialization type
+- View and edit model descriptions
+- Export metadata to JSON or YAML formats
+
+## System Requirements
+
+### Backend (Python)
+
+- Python 3.9+
+- FastAPI
+- SQLAlchemy
+- Other dependencies in `backend/requirements.txt`
+
+### Frontend (React)
+
+- Node.js 16+
+- React 18
+- Ant Design
+- Dependencies in `frontend/package.json`
+
+### dbt Projects
+
+- dbt Core 1.0+
+- Projects with generated manifest.json files (in target/ directory)
+
+## Installation
 
 ### Backend Setup
 
-1. Install backend dependencies:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
+```bash
+# Navigate to the backend directory
+cd backend
 
-2. Create a `.env` file in the `backend` directory (optional):
-   ```
-   # Optional: Gemini API key for AI-generated descriptions
-   GEMINI_API_KEY=your-api-key-here
-   
-   # Optional: Enable/disable AI descriptions
-   ENABLE_AI_DESCRIPTIONS=true
-   ```
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables (optional)
+# Copy .env.example to .env and edit as needed
+cp .env.example .env
+```
 
 ### Frontend Setup
 
-1. Install frontend dependencies:
-   ```bash
-   cd frontend
-   npm install
-   ```
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create a .env file with the backend URL if needed
+echo "REACT_APP_API_URL=http://localhost:8000" > .env
+```
 
 ## Running the Application
 
 ### Start the Backend
 
-1. Run the backend server, pointing to your dbt projects directory:
-   ```bash
-   cd backend
-   python run.py --projects-dir "/path/to/your/dbt/projects"
-   ```
+```bash
+# From the backend directory with virtual environment activated
+python run.py
+# Or using a custom dbt projects directory
+python run.py --projects-dir /path/to/your/dbt_projects
 
-   By default, the server will run on `http://0.0.0.0:8000`.
+# Additional command-line options:
+# --host: Specify the host to run the server on
+# --port: Specify the port to run the server on
+python run.py --projects-dir custom_dbt_dir --host 127.0.0.1 --port 8080
 
-   **Note**: Replace `/path/to/your/dbt/projects` with the actual path to your dbt projects directory. This should be a directory containing one or more dbt project folders.
+# Or using uvicorn directly
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
 
 ### Start the Frontend
 
-1. In a new terminal, start the frontend development server:
-   ```bash
-   cd frontend
-   npm start
-   ```
+```bash
+# From the frontend directory
+npm start
+```
 
-   The frontend will be available at `http://localhost:3000`.
+The application will be available at http://localhost:3000
 
-## How the Project Works
 
-### Architecture Overview
+## Workflow Diagram
 
-The DBT Metadata Explorer is built with a modern architecture:
+![alt text](image.png)
 
-1. **Backend**: Python FastAPI application that parses dbt projects and serves metadata through RESTful APIs
-2. **Frontend**: React TypeScript application that provides an intuitive UI for exploring the metadata
-3. **AI Integration**: Google's Gemini API for generating intelligent descriptions of models and columns
+## Features
 
-### Backend Components
+- **Project Explorer**: Navigate through all your dbt projects
+- **Model Details**: View model schemas, lineage, descriptions, and SQL code
+- **Search & Filter**: Find models by name, project, tags, or materialization type
+- **Lineage Visualization**: Visual representation of model dependencies
+- **Auto-Refresh**: Automatically detect changes to dbt projects (can be toggled on/off)
+- **Export Functionality**: Export metadata to JSON or YAML
+- **AI-Generated Descriptions**: Optional AI-generated descriptions for models and columns
 
-The backend handles several key functions:
+## Project Structure
 
-1. **Project Discovery**: Scans the specified directory for dbt projects
-2. **Metadata Parsing**: Extracts metadata from dbt manifest.json files
-3. **Cross-Project Linking**: Identifies and links related models across different projects
-4. **AI Description Generation**: Uses Gemini API to generate human-readable descriptions
-5. **File Watching**: Monitors dbt projects for changes and updates metadata automatically
-6. **API Endpoints**: Provides RESTful APIs for the frontend to consume
+```
+dbt-metadata-explorer/
+├── backend/                     # Backend API built with FastAPI
+│   ├── api/                     # API endpoints
+│   ├── models/                  # SQLAlchemy models
+│   ├── routes/                  # API routes
+│   ├── services/                # Business logic services
+│   │   ├── metadata_service.py  # Main metadata processing service
+│   │   ├── file_watcher_service.py  # File watcher for auto-refresh
+│   │   └── ai_description_service.py  # AI description generation service
+│   ├── exports/                 # Output directory for metadata exports
+│   ├── main.py                  # Main application entry point
+│   └── requirements.txt         # Python dependencies
+│
+├── frontend/                    # React frontend
+│   ├── public/                  # Static assets
+│   ├── src/                     # React source code
+│   │   ├── components/          # React components
+│   │   ├── pages/               # Page components
+│   │   ├── services/            # API service connectors
+│   │   └── App.tsx              # Main React application
+│   ├── package.json             # npm dependencies and scripts
+│   └── .env                     # Environment variables
+│
+└── dbt_projects/                # Directory containing dbt projects
+    ├── claims_processing/       # Sample dbt project
+    ├── customer_risk/           # Sample dbt project
+    └── policy_management/       # Sample dbt project
+```
 
-The main components are:
-- `metadata_service.py`: Core service that processes dbt metadata
-- `dbt_metadata_parser.py`: Parses dbt manifest files
-- `ai_description_service.py`: Generates AI descriptions using Gemini
-- `file_watcher_service.py`: Monitors for file changes
+## Development
 
-### Frontend Components
+### Running in Development Mode
 
-The frontend provides an intuitive interface for exploring the metadata:
+Both the frontend and backend include development servers that automatically reload when changes are detected:
 
-1. **Dashboard**: Overview of projects, models, and statistics
-2. **Models Explorer**: Browse, search, and filter models across all projects
-3. **Model Detail View**: View detailed information about a specific model
-4. **Lineage Visualization**: Interactive graph showing relationships between models
-5. **Export Functionality**: Export metadata to JSON or YAML format
+- Backend: `python run.py` or `uvicorn backend.main:app --reload`
+- Frontend: `npm start`
 
-Key components include:
-- `App.tsx`: Main application component
-- `ModelsTable.tsx`: Table view of all models with search and filter
-- `ModelDetail.tsx`: Detailed view of a single model
-- `LineageGraph.tsx`: Visual representation of model dependencies
-- `DescriptionEdit.tsx`: Interface for editing AI-generated descriptions
+### Adding New dbt Projects
 
-### Data Flow
+Add new dbt projects to your projects directory (default is `dbt_projects_2/`), then:
 
-1. The backend scans dbt projects and extracts metadata
-2. AI descriptions are generated for models and columns
-3. The frontend fetches this data via API calls
-4. Users can browse, search, and visualize the unified schema
-5. Users can edit AI-generated descriptions, which are saved back to the backend
-6. Changes to dbt projects are detected automatically, and metadata is refreshed
+1. Ensure they have been compiled with `dbt compile` or `dbt run` to generate manifest.json
+2. Click "Refresh" in the web UI or restart the backend server
+3. The new project should automatically appear in the UI
 
-### Key Features
+### Changing the dbt Projects Directory
 
-- **Multi-Project Aggregation**: Combines multiple dbt projects into a unified schema
-- **Cross-Project Lineage**: Shows dependencies between models across different projects
-- **AI-Generated Descriptions**: Automatically generates human-readable descriptions
-- **User Corrections**: Allows users to refine AI-generated descriptions
-- **Dynamic Documentation**: Updates automatically as dbt models change
-- **Export Functionality**: Exports schema and metadata in JSON/YAML format
+You can specify a different dbt projects directory in several ways:
+
+1. **Command-line argument**: `python run.py --projects-dir /path/to/projects`
+2. **Environment variable**: Set `DBT_PROJECTS_DIR` in your `.env` file
+3. **Runtime**: Export the environment variable before running: `export DBT_PROJECTS_DIR=/path/to/projects`
 
 ## Troubleshooting
 
-### Backend Issues
+Common issues and their solutions:
 
-- If you see an error about missing dependencies, ensure you've installed all requirements:
-  ```bash
-  pip install -r backend/requirements.txt
-  ```
+- **Backend not starting**: Check Python version and dependencies
+- **Models not showing up**: Ensure manifest.json exists in the project's target/ directory
+- **Lineage not displaying**: Check that model references use the ref() function correctly
+- **Frontend not connecting**: Verify the API URL in .env or proxy setting in package.json
+- **FileWatcher Not Working**: Verify the watcher status indicator in the UI, toggle if needed
 
-- If the backend can't find your dbt projects, check the path provided to `--projects-dir`
+## License
 
-- For AI description issues, ensure your Gemini API key is correctly set in the `.env` file
+MIT License
 
-### Frontend Issues
+## Contributors
 
-- If you encounter dependency issues, try:
-  ```bash
-  cd frontend
-  rm -rf node_modules
-  npm install
-  ```
+Your Name and contributors
 
-- If the frontend can't connect to the backend, ensure the backend is running and check for any CORS issues
+---
+
+For more information, visit [github.com/yourusername/dbt-metadata-explorer](https://github.com/yourusername/dbt-metadata-explorer)
